@@ -7,6 +7,9 @@
   ],
   "rosterSize": 6,
   "startingCash": 40000,
+  "economy": { "rentPerWeek": 500, "payrollEveryWeeks": 4, "debtStrikes": 3, "winWeek": 104, "weeksPerQuarter": 13, "severanceWeeks": 2, "rosterMax": 8, "draftSize": 3 },
+  "sales": { "basePerWeek": 5000, "hypeScale": 20, "reviewExp": 2, "decay": 0.85, "minWeekly": 50 },
+  "burnout": { "perWeekPlaced": 8, "recoverPerWeek": 10, "threshold": 100, "breakthroughChance": 0.35, "breakthroughQuality": 15, "breakdownBugs": 6 },
   "review": { "expectation": 70, "bugPenalty": 0.15, "min": 1, "max": 10 },
   "genres": [
     { "id": "action", "name": "Action", "weights": { "code": 1.3, "design": 0.8, "art": 1.0, "audio": 0.6 } },
@@ -15,8 +18,8 @@
     { "id": "rhythm", "name": "Rhythm", "weights": { "code": 0.7, "design": 0.8, "art": 0.8, "audio": 1.5 } }
   ],
   "trends": [
-    { "id": "indie_darling", "name": "Indie Darling", "effects": [ { "trigger": "slot:art", "target": "hype", "op": "add", "value": 1 } ] },
-    { "id": "retro_wave", "name": "Retro Wave", "effects": [ { "trigger": "slot:audio", "target": "output", "op": "add", "value": 1 } ] }
+    { "id": "indie_darling", "name": "Indie Darling", "effects": [ { "trigger": "slot:art", "target": "hype", "op": "add", "value": 1 } ], "demand": { "puzzle": 1.3, "action": 0.9 } },
+    { "id": "retro_wave", "name": "Retro Wave", "effects": [ { "trigger": "slot:audio", "target": "output", "op": "add", "value": 1 } ], "demand": { "rhythm": 1.3, "rpg": 0.9 } }
   ],
   "traits": [
     { "id": "spaghetti_coder", "name": "Spaghetti Coder", "text": "+3 output, +2 bugs", "effects": [

@@ -48,6 +48,7 @@ export const TrendDef = z.object({
   id: z.string(),
   name: z.string(),
   effects: z.array(EffectDef),
+  demand: z.record(z.string(), z.number().nonnegative()).default({}), // per genre id; missing = 1
 });
 export type TrendDef = z.infer<typeof TrendDef>;
 
@@ -60,6 +61,31 @@ export const ContentPack = z.object({
   rosterSize: z.number().int().positive(),
   startingCash: z.number(),
   review: z.object({ expectation: z.number().positive(), bugPenalty: z.number().nonnegative(), min: z.number(), max: z.number() }),
+  economy: z.object({
+    rentPerWeek: z.number().nonnegative(),
+    payrollEveryWeeks: z.number().int().positive(), // a Payroll Day falls on every multiple of this week
+    debtStrikes: z.number().int().positive(),       // D-2: the Nth missed Payroll Day ends the run
+    winWeek: z.number().int().positive(),           // survive to this week to win
+    weeksPerQuarter: z.number().int().positive(),
+    severanceWeeks: z.number().nonnegative(),
+    rosterMax: z.number().int().positive(),
+    draftSize: z.number().int().positive(),
+  }),
+  sales: z.object({
+    basePerWeek: z.number().nonnegative(),
+    hypeScale: z.number().nonnegative(),  // revenue x (1 + hype / hypeScale)
+    reviewExp: z.number().nonnegative(),  // revenue x (review / 10) ^ reviewExp
+    decay: z.number().gt(0).lt(1),        // per week after release
+    minWeekly: z.number().nonnegative(),  // sales stop below this
+  }),
+  burnout: z.object({
+    perWeekPlaced: z.number().nonnegative(),
+    recoverPerWeek: z.number().nonnegative(),
+    threshold: z.number().positive(),
+    breakthroughChance: z.number().min(0).max(1),
+    breakthroughQuality: z.number(),
+    breakdownBugs: z.number(),
+  }),
   traits: z.array(TraitDef),
   workers: z.array(WorkerDef),
   genres: z.array(GenreDef).min(1),
@@ -76,6 +102,10 @@ export const ContentPack = z.object({
       if (kind === 'slot' && !c.departments.includes(arg as Dept)) ctx.addIssue({ code: 'custom', message: `${t.id}: bad slot ${arg}` });
       if (kind === 'phase' && !phaseIds.has(arg)) ctx.addIssue({ code: 'custom', message: `${t.id}: bad phase ${arg}` });
     }
+  for (const t of c.trends)
+    for (const g of Object.keys(t.demand))
+      if (!c.genres.some((x) => x.id === g)) ctx.addIssue({ code: 'custom', message: `trend ${t.id}: unknown genre ${g}` });
+  if (c.rosterSize > c.economy.rosterMax) ctx.addIssue({ code: 'custom', message: 'rosterSize > rosterMax' });
   if (c.rosterSize > c.workers.length) ctx.addIssue({ code: 'custom', message: 'rosterSize > workers' });
 });
 export type ContentPack = z.infer<typeof ContentPack>;

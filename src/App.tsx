@@ -1,7 +1,10 @@
 import { content } from './data/load';
 import { useGame } from './store/game';
 import { RunScreen } from './ui/RunScreen';
-import { signed } from './ui/format';
+import { money, signed } from './ui/format';
+import { Between } from './ui/Between';
+import { Hud } from './ui/Hud';
+import { PostMortem } from './ui/PostMortem';
 
 function GenrePicker() {
   const dispatch = useGame((s) => s.dispatch);
@@ -29,7 +32,7 @@ function Review() {
   return (
     <section className="review" aria-live="polite">
       <h2>Last release: {genre.name}, review <span className="score">{r.review}/10</span></h2>
-      <p className="muted">Quality {r.quality.toFixed(1)} vs expectation {content.review.expectation} · Hype {r.hype.toFixed(1)} · Bugs {r.bugs.toFixed(1)}</p>
+      <p className="muted">Cost {money(r.cost)} · sales so far {money(r.revenue)} · Quality {r.quality.toFixed(1)} vs expectation {content.review.expectation} · Hype {r.hype.toFixed(1)} · Bugs {r.bugs.toFixed(1)}</p>
       <div className="why">
         <div><h3>Helped</h3>{r.best.map((l) => <div key={l.source} className="pos">{signed(l.impact)} {l.source}</div>)}</div>
         <div><h3>Hurt</h3>{r.worst.length ? r.worst.map((l) => <div key={l.source} className="neg">{signed(l.impact)} {l.source}</div>) : <div className="muted">nothing</div>}</div>
@@ -39,13 +42,14 @@ function Review() {
 }
 
 export default function App() {
-  const { state, newGame } = useGame();
+  const { state, error } = useGame();
+  const over = state.dead || state.won;
   return (
     <main>
-      <h1>Dev Tycoon Roguelike <span className="muted">M1 placement prototype · seed {state.seed}</span></h1>
-      {state.dead ? (
-        <section className="review"><h2>Bankrupt in week {state.week}</h2><button className="primary" onClick={() => newGame()}>New run</button></section>
-      ) : state.project ? <RunScreen /> : (<><Review /><GenrePicker /></>)}
+      <h1>Dev Tycoon Roguelike <span className="muted">M2 survival loop · seed {state.seed}</span></h1>
+      <Hud />
+      {error && <div className="error" role="alert">{error}</div>}
+      {over ? <PostMortem /> : state.project ? <RunScreen /> : (<><Review /><Between /><GenrePicker /></>)}
     </main>
   );
 }

@@ -4,3 +4,4 @@ export const workerById = (id: string) => content.workers.find((w) => w.id === i
 export const traitById = (id: string) => content.traits.find((t) => t.id === id)!;
 const fmt = (n: number) => (Math.round(n * 10) / 10).toString();
 export const signed = (n: number) => (n > 0 ? `+${fmt(n)}` : fmt(n));
+export const money = (n: number) => `${n < 0 ? '-' : ''}$${Math.abs(Math.round(n)).toLocaleString()}`;
