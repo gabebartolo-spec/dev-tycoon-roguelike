@@ -67,3 +67,4 @@ button:disabled { opacity: 0.4; cursor: default; }
 .float-host { position: relative; }
 .float-delta { position: absolute; left: calc(100% + 14px); top: 0; pointer-events: none; font-weight: 600; white-space: nowrap; }
 .review-step { display: block; }
+.studio-view { height: 260px; border-radius: 10px; overflow: hidden; border: 1px solid var(--line); background: #1b1b22; }

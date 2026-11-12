@@ -69,8 +69,8 @@ Goal: run 5 plays differently from run 1 because of choices, not just bigger num
 
 ## M5: Content, juice and the studio view
 - [ ] Content to 40 workers, 60 traits, 10 genres, 25 topics, 40 events, 6 rival companies
-- [ ] Framer Motion: card lift, slot snap, floating deltas, review score reveal with readable steps
-- [ ] `<StudioView>` (react-three-fiber): low-poly desks; placed workers sit, bug swarms grow, hype lighting; driven
+- [x] Framer Motion (motion 12): card lift, slot snap, floating deltas, review score reveal with readable steps
+- [x] `<StudioView>` (procedural desks for now; Tripo models when API credits exist) (react-three-fiber): low-poly desks; placed workers sit, bug swarms grow, hype lighting; driven
   only by sim events; `frameloop="demand"`
 - [ ] Audio: UI clicks, release sting, payroll tension cue
 - [ ] Tutorial run (fixed seed, scripted events)
