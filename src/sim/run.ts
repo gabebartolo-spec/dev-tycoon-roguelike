@@ -15,6 +15,7 @@ export interface Project {
   hype: number;
   bugs: number;
   contributions: Contribution[];
+  usedAi?: boolean; // an AI card worked a phase: the shipped game leaves tech debt
 }
 
 export interface ReviewLine { source: string; impact: number } // impact on the 1-10 review score
@@ -59,7 +60,7 @@ export interface RunState {
   rivalGenres: Record<string, string>; // genre each rival is chasing now (copies your hits)
   pitch: Pitch[];
   event: string | null;           // event id waiting for a choice
-  carry: { hype: number; bugs: number }; // event effects waiting for the next project
+  carry: { hype: number; bugs: number; debt?: number }; // event effects (and AI tech debt) waiting for the next project
   project: Project | null;
   projectCost: number;
   releases: Release[];
@@ -110,8 +111,31 @@ function drawInt(s: RunState, max: number): [number, RunState] {
 }
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
+export const isAi = (id: string, content: ContentPack) => !!content.workers.find((w) => w.id === id)?.tags.includes(content.ai.tag);
+
+/**
+ * New Model Drops: from Era 2 on, every AI card has +statPerEra on its best stat and +salaryPerEra salary per Era.
+ * Pure; returns the pack untouched in Era 1 or when no AI card exists. Apply once to the run's pack, never twice.
+ */
+export function withModels(content: ContentPack, week: number): ContentPack {
+  const A = content.ai;
+  const era = Math.min(content.calendar.eras - 1, eraOf(quarterOf(week, content), content));
+  if (era <= 0 || (A.statPerEra === 0 && A.salaryPerEra === 0) || !content.workers.some((w) => w.tags.includes(A.tag))) return content;
+  return {
+    ...content,
+    workers: content.workers.map((w) => {
+      if (!w.tags.includes(A.tag)) return w;
+      const best = (['code', 'design', 'art', 'audio'] as const).reduce((a, k) => (w.stats[k] > w.stats[a] ? k : a), 'code' as const);
+      return { ...w, salary: w.salary + A.salaryPerEra * era, stats: { ...w.stats, [best]: w.stats[best] + A.statPerEra * era } };
+    }),
+  };
+}
+
 const salaryOf = (id: string, content: ContentPack) => content.workers.find((w) => w.id === id)!.salary;
-const payrollOf = (s: RunState, content: ContentPack) => s.roster.reduce((sum, id) => sum + salaryOf(id, content), 0);
+const payrollOf = (s: RunState, content: ContentPack) => {
+  const c = withModels(content, s.week);
+  return s.roster.reduce((sum, id) => sum + salaryOf(id, c), 0);
+};
 export const weeklyCosts = (s: RunState, content: ContentPack) => payrollOf(s, content) + content.economy.rentPerWeek;
 
 /** Weeks the current cash lasts at current costs, counting sales already earning. Infinity if it never runs out. */
@@ -162,8 +186,9 @@ function startQuarter(s0: RunState, q: number, content: ContentPack): [RunState,
 export function newRun(seed: number, content: ContentPack, options: RunOptions = defaultOptions(content)): RunState {
   let rng = prand.xoroshiro128plus(seed);
   const draw = (max: number) => { const [v, next] = prand.uniformIntDistribution(0, max, rng); rng = next; return v; };
-  const pool = content.workers.map((w) => w.id);
-  const roster: string[] = [];
+  const fixed = content.startWorkers.filter((id) => content.workers.some((w) => w.id === id)).slice(0, content.rosterSize);
+  const pool = content.workers.map((w) => w.id).filter((id) => !fixed.includes(id));
+  const roster: string[] = [...fixed];
   while (roster.length < content.rosterSize) roster.push(pool.splice(draw(pool.length - 1), 1)[0]);
   const board: Board = Object.fromEntries(content.departments.map((d) => [d, null]));
   const market = generateMarket(seed, content);
@@ -298,7 +323,7 @@ export function launchSales(r: Pick<Release, 'hype' | 'review'>, demand: number,
 /** Totals the current board would produce if the phase ended now. */
 export function phaseTotals(s: RunState, content: ContentPack): Totals | null {
   if (!s.project) return null;
-  return resolve(s.board, { content, genreId: s.project.genreId, phaseId: content.phases[s.project.phase].id, trendId: s.trendId });
+  return resolve(s.board, { content: withModels(content, s.week), genreId: s.project.genreId, phaseId: content.phases[s.project.phase].id, trendId: s.trendId });
 }
 
 /** Pure preview: apply a command to a copy and diff this phase's totals. */
@@ -334,6 +359,7 @@ function burnoutPhase(s0: RunState, project0: Project, weeks: number, content: C
   const burnout: Record<string, number> = {};
   const benched: string[] = [];
   for (const id of s.roster) {
+    if (isAi(id, content)) { burnout[id] = 0; continue; } // AI cards never burn out
     const was = s.burnout[id] ?? 0;
     const b = placed.has(id) ? was + B.perWeekPlaced * weeks : Math.max(0, was - B.recoverPerWeek * weeks);
     burnout[id] = b < B.threshold ? b : 0;
@@ -392,7 +418,9 @@ export function apply(s: RunState, cmd: Command, content: ContentPack): [RunStat
       const contributions: Contribution[] = [];
       if (s.carry.hype) contributions.push({ source: 'Events', metric: 'hype', delta: s.carry.hype });
       if (s.carry.bugs) contributions.push({ source: 'Events', metric: 'bugs', delta: s.carry.bugs });
-      const project: Project = { genreId: cmd.genreId, topicId: cmd.topicId, phase: 0, quality: 0, hype: s.carry.hype, bugs: s.carry.bugs, contributions };
+      const debt = s.carry.debt ?? 0;
+      if (debt) contributions.push({ source: 'Tech debt', metric: 'bugs', delta: debt });
+      const project: Project = { genreId: cmd.genreId, topicId: cmd.topicId, phase: 0, quality: 0, hype: s.carry.hype, bugs: s.carry.bugs + debt, contributions };
       return [{ ...s, project, projectCost: 0, draft: null, carry: { hype: 0, bugs: 0 } }, [{ type: 'projectStarted', genreId: cmd.genreId, topicId: cmd.topicId }]];
     }
     case 'place': {
@@ -439,6 +467,7 @@ export function apply(s: RunState, cmd: Command, content: ContentPack): [RunStat
         hype: s.project.hype + totals.hype,
         bugs: s.project.bugs + totals.bugs,
         contributions: [...s.project.contributions, ...totals.contributions],
+        usedAi: s.project.usedAi || Object.values(s.board).some((id) => !!id && isAi(id, content)),
       }, phase.weeks, content);
       const [ticked, tickEvents] = tick({ ...afterBurnout, project: built }, phase.weeks, content);
       let next = ticked;
@@ -457,8 +486,11 @@ export function apply(s: RunState, cmd: Command, content: ContentPack): [RunStat
         const demand = demandFor(next, project, content);
         // Rivals react to a hit: the first rival chasing another genre switches to yours.
         const copycat = hit ? next.market.rivals.find((id) => next.rivalGenres[id] !== project.genreId) : undefined;
+        // Tech debt: a game an AI card worked on hands part of its bugs to the next game.
+        const debt = project.usedAi ? Math.round(project.bugs * content.ai.debt * 10) / 10 : 0;
         next = {
           ...next, project: null, benched: [], releases: [...next.releases, release],
+          carry: debt ? { ...next.carry, debt: (next.carry.debt ?? 0) + debt } : next.carry,
           sales: [...next.sales, { release: next.releases.length, next: launchSales(release, demand, content) }],
           expectation: hit ? Math.min(M.expectationMax, next.expectation + M.expectationRise) : next.expectation,
           rivalGenres: copycat ? { ...next.rivalGenres, [copycat]: project.genreId } : next.rivalGenres,

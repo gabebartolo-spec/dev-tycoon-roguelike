@@ -11,6 +11,7 @@
   ],
   "rosterSize": 6,
   "startingCash": 40000,
+  "ai": { "tag": "ai", "debt": 0.3, "statPerEra": 1, "salaryPerEra": 20 },
   "economy": { "rentPerWeek": 500, "debtStrikes": 3, "severanceWeeks": 2, "rosterMax": 8, "draftSize": 3 },
   "sales": { "basePerWeek": 3000, "hypeScale": 20, "reviewExp": 2, "decay": 0.85, "minWeekly": 50 },
   "burnout": { "perWeekPlaced": 8, "recoverPerWeek": 10, "threshold": 100, "breakthroughChance": 0.35, "breakthroughQuality": 15, "breakdownBugs": 6 },
@@ -39,7 +40,8 @@
     { "id": "garage", "name": "Garage Studio", "text": "Where everyone starts. No perks, no catches.", "mods": [] },
     { "id": "open_source", "name": "Open-Source Engine", "text": "No licence fee (rent -$200/wk), but code counts 10% less and Prototype takes a week longer.", "mods": [ { "kind": "rent", "add": -200 }, { "kind": "deptWeight", "dept": "code", "mul": 0.9 }, { "kind": "phaseWeeks", "phase": "prototype", "add": 1 } ] },
     { "id": "publisher_deal", "name": "Publisher Deal", "text": "+$30k up front, but the publisher takes 15% of every sale.", "mods": [ { "kind": "cash", "add": 30000 }, { "kind": "sales", "mul": 0.85 } ] },
-    { "id": "co_op", "name": "Worker Co-op", "text": "Salaries 10% lower, but the team burns out twice as fast and you start one worker short.", "mods": [ { "kind": "salary", "mul": 0.9 }, { "kind": "burnout", "mul": 2 }, { "kind": "rosterSize", "add": -1 } ] }
+    { "id": "co_op", "name": "Worker Co-op", "text": "Salaries 10% lower, but the team burns out twice as fast and you start one worker short.", "mods": [ { "kind": "salary", "mul": 0.9 }, { "kind": "burnout", "mul": 2 }, { "kind": "rosterSize", "add": -1 } ] },
+    { "id": "weekend_project", "name": "Weekend Project", "text": "You start with a Coding Agent on the team and $10k less cash; Prototype takes a week less.", "mods": [ { "kind": "startWorker", "id": "coding_agent" }, { "kind": "cash", "add": -10000 }, { "kind": "phaseWeeks", "phase": "prototype", "add": -1 } ] }
   ],
   "unlocks": [
     { "id": "studio_open_source", "name": "Open-Source Engine", "text": "Starting studio: cheaper rent, weaker code, slower Prototype.", "cost": 10, "studio": "open_source" },
@@ -48,7 +50,8 @@
     { "id": "veterans", "name": "Industry veterans", "text": "Adds Gus (QA veteran) and Ivy (streamer) to the draft pool. They are pricey and crowd out cheaper hires.", "cost": 12, "workers": ["gus", "ivy"] },
     { "id": "genre_strategy", "name": "Strategy genre", "text": "Adds Strategy to pitches and the market. A design-heavy genre; more genres also spread your pitches thinner.", "cost": 18, "genres": ["strategy"] },
     { "id": "dept_qa", "name": "QA department", "text": "Adds a QA slot: the worker there fixes 0.5 bugs per Code point instead of adding quality. Upkeep +$150/wk.", "cost": 15, "departments": ["qa"], "mods": [ { "kind": "rent", "add": 150 } ] },
-    { "id": "dept_marketing", "name": "Marketing department", "text": "Adds a Marketing slot: the worker there adds 0.4 hype per Design point instead of quality. Upkeep +$250/wk.", "cost": 15, "departments": ["marketing"], "mods": [ { "kind": "rent", "add": 250 } ] }
+    { "id": "dept_marketing", "name": "Marketing department", "text": "Adds a Marketing slot: the worker there adds 0.4 hype per Design point instead of quality. Upkeep +$250/wk.", "cost": 15, "departments": ["marketing"], "mods": [ { "kind": "rent", "add": 250 } ] },
+    { "id": "vibecoding", "name": "Vibecoding", "text": "Starting studio Weekend Project, AI cards and vibecoding events. AI cards are cheap and never burn out, but a game they work on hands 30% of its bugs to the next one; each Era a new model makes them better and pricier.", "cost": 12, "studio": "weekend_project", "workers": ["autocomplete", "coding_agent", "image_model", "grumpy_senior", "indie_hacker", "prompt_engineer"], "events": ["agent_deleted_prod", "price_hike", "vibe_jam", "disclosure_backlash"] }
   ],
   "crunch": [
     { "text": "Payroll thresholds +10%", "mods": [ { "kind": "threshold", "mul": 1.1 } ] },
@@ -110,7 +113,11 @@
     { "id": "bundle_offer", "title": "Bundle offer", "text": "A charity bundle wants your back catalogue.", "choices": [ { "label": "Join ($4k now)", "effects": [ { "kind": "cash", "value": 4000 }, { "kind": "share", "value": 0.95 } ] }, { "label": "Decline", "effects": [] } ] },
     { "id": "platform_promo", "title": "Platform promo", "text": "The store front-pages indie games this Quarter.", "choices": [ { "label": "Noted", "effects": [ { "kind": "demand", "value": 1.2 } ] } ] },
     { "id": "recession", "title": "Recession", "text": "Players cut back on games.", "choices": [ { "label": "Noted", "effects": [ { "kind": "demand", "value": 0.8 } ] } ] },
-    { "id": "community_mod", "title": "Modding scene", "text": "Fans mod your games.", "choices": [ { "label": "Support mods", "effects": [ { "kind": "share", "value": 1.08 }, { "kind": "burnoutAll", "value": 10 } ] }, { "label": "Ignore them", "effects": [] } ] }
+    { "id": "community_mod", "title": "Modding scene", "text": "Fans mod your games.", "choices": [ { "label": "Support mods", "effects": [ { "kind": "share", "value": 1.08 }, { "kind": "burnoutAll", "value": 10 } ] }, { "label": "Ignore them", "effects": [] } ] },
+    { "id": "agent_deleted_prod", "title": "The agent deleted prod", "text": "Your coding agent wiped the live database during a code freeze, then said a rollback was impossible.", "choices": [ { "label": "Restore the backup", "effects": [ { "kind": "cash", "value": -4000 } ] }, { "label": "Ship it anyway", "effects": [ { "kind": "bugs", "value": 8 } ] } ] },
+    { "id": "price_hike", "title": "Subscription price hike", "text": "Your AI tools raise their prices.", "choices": [ { "label": "Pay up", "effects": [ { "kind": "cash", "value": -2000 } ] } ] },
+    { "id": "vibe_jam", "title": "Vibe Jam", "text": "A game jam where most of the code must be AI-written.", "choices": [ { "label": "Enter", "effects": [ { "kind": "hype", "value": 6 }, { "kind": "burnoutAll", "value": 10 } ] }, { "label": "Skip it", "effects": [] } ] },
+    { "id": "disclosure_backlash", "title": "AI disclosure backlash", "text": "Players are checking store pages for AI disclosures.", "choices": [ { "label": "Disclose", "effects": [ { "kind": "hype", "value": -5 } ] }, { "label": "Hide it", "effects": [ { "kind": "share", "value": 0.9 } ] } ] }
   ],
   "traits": [
     { "id": "spaghetti_coder", "name": "Spaghetti Coder", "text": "+3 output, +2 bugs", "effects": [
@@ -153,7 +160,17 @@
     { "id": "cozy_vibes", "name": "Cozy Vibes", "text": "Beside an artist: +1 hype", "effects": [
       { "trigger": "adjacent:artist", "target": "hype", "op": "add", "value": 1 } ] },
     { "id": "qa_eye", "name": "QA Eye", "text": "Polish: -3 bugs", "effects": [ { "trigger": "phase:polish", "target": "bugs", "op": "add", "value": -3 } ] },
-    { "id": "streamer", "name": "Streamer", "text": "+3 hype; output x0.8", "effects": [ { "trigger": "always", "target": "hype", "op": "add", "value": 3 }, { "trigger": "always", "target": "output", "op": "mul", "value": 0.8 } ] }
+    { "id": "streamer", "name": "Streamer", "text": "+3 hype; output x0.8", "effects": [ { "trigger": "always", "target": "hype", "op": "add", "value": 3 }, { "trigger": "always", "target": "output", "op": "mul", "value": 0.8 } ] },
+    { "id": "hallucinates", "name": "Hallucinates", "text": "+2 bugs", "effects": [ { "trigger": "always", "target": "bugs", "op": "add", "value": 2 } ] },
+    { "id": "yolo_mode", "name": "YOLO Mode", "text": "Production: output x1.5", "effects": [ { "trigger": "phase:production", "target": "output", "op": "mul", "value": 1.5 } ] },
+    { "id": "context_window", "name": "Context Window", "text": "Polish: output x0.5", "effects": [ { "trigger": "phase:polish", "target": "output", "op": "mul", "value": 0.5 } ] },
+    { "id": "copy_paste", "name": "Copy-Paste", "text": "+2 output; Polish: +2 bugs", "effects": [
+      { "trigger": "always", "target": "output", "op": "add", "value": 2 },
+      { "trigger": "phase:polish", "target": "bugs", "op": "add", "value": 2 } ] },
+    { "id": "ai_disclosure", "name": "AI Disclosure", "text": "-1 hype", "effects": [ { "trigger": "always", "target": "hype", "op": "add", "value": -1 } ] },
+    { "id": "code_review", "name": "Code Review", "text": "Beside an AI card: -3 bugs", "effects": [ { "trigger": "adjacent:ai", "target": "bugs", "op": "add", "value": -3 } ] },
+    { "id": "build_in_public", "name": "Build in Public", "text": "Beside an AI card: +3 hype", "effects": [ { "trigger": "adjacent:ai", "target": "hype", "op": "add", "value": 3 } ] },
+    { "id": "prompting", "name": "Prompt Engineer", "text": "Beside an AI card: +3 output", "effects": [ { "trigger": "adjacent:ai", "target": "output", "op": "add", "value": 3 } ] }
   ],
   "workers": [
     { "id": "ada", "name": "Ada", "salary": 260, "tags": ["coder", "senior"], "stats": { "code": 5, "design": 1, "art": 0, "audio": 0, "hype": 0, "bugs": 1 }, "traits": ["spaghetti_coder", "night_owl"] },
@@ -169,6 +186,12 @@
     { "id": "noa", "name": "Noa", "salary": 140, "tags": ["audio", "junior"], "stats": { "code": 0, "design": 1, "art": 0, "audio": 3, "hype": 0, "bugs": 0 }, "traits": ["team_player", "generalist"] },
     { "id": "vee", "name": "Vee", "salary": 180, "tags": ["junior"], "stats": { "code": 2, "design": 2, "art": 2, "audio": 2, "hype": 0, "bugs": 0 }, "traits": ["generalist", "duct_tape"] },
     { "id": "gus", "name": "Gus", "salary": 320, "tags": ["coder", "senior"], "stats": { "code": 4, "design": 1, "art": 0, "audio": 0, "hype": 0, "bugs": 0 }, "traits": ["qa_eye", "bug_hunter"] },
-    { "id": "ivy", "name": "Ivy", "salary": 300, "tags": ["designer", "senior"], "stats": { "code": 0, "design": 3, "art": 1, "audio": 1, "hype": 3, "bugs": 0 }, "traits": ["streamer"] }
+    { "id": "ivy", "name": "Ivy", "salary": 300, "tags": ["designer", "senior"], "stats": { "code": 0, "design": 3, "art": 1, "audio": 1, "hype": 3, "bugs": 0 }, "traits": ["streamer"] },
+    { "id": "autocomplete", "name": "Autocomplete", "salary": 40, "tags": ["ai"], "stats": { "code": 3, "design": 0, "art": 0, "audio": 0, "hype": 0, "bugs": 0 }, "traits": ["copy_paste"] },
+    { "id": "coding_agent", "name": "Coding Agent", "salary": 100, "tags": ["ai"], "stats": { "code": 7, "design": 0, "art": 0, "audio": 0, "hype": 0, "bugs": 0 }, "traits": ["hallucinates", "yolo_mode", "context_window"] },
+    { "id": "image_model", "name": "Image Model", "salary": 60, "tags": ["ai"], "stats": { "code": 0, "design": 0, "art": 5, "audio": 0, "hype": 0, "bugs": 0 }, "traits": ["ai_disclosure"] },
+    { "id": "grumpy_senior", "name": "Grumpy Senior", "salary": 280, "tags": ["coder", "senior"], "stats": { "code": 4, "design": 2, "art": 0, "audio": 0, "hype": 0, "bugs": 0 }, "traits": ["code_review"] },
+    { "id": "indie_hacker", "name": "Indie Hacker", "salary": 160, "tags": ["designer"], "stats": { "code": 1, "design": 3, "art": 0, "audio": 0, "hype": 1, "bugs": 0 }, "traits": ["build_in_public"] },
+    { "id": "prompt_engineer", "name": "Prompt Engineer", "salary": 130, "tags": ["designer", "junior"], "stats": { "code": 0, "design": 2, "art": 0, "audio": 1, "hype": 0, "bugs": 0 }, "traits": ["prompting"] }
   ]
 }
