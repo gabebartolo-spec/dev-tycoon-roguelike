@@ -1,7 +1,10 @@
 import type { RunState } from '../sim/run';
 
-/** Fixed seed: a plain first project on it reviews 6+, so a newcomer's first release lands well. */
-export const TUTORIAL_SEED = 5;
+/**
+ * Fixed seed: a fully staffed first project reviews 9.5+ on any of its three pitches (searched over seeds 1-3000),
+ * so a newcomer who follows the coach lands a hit. Empty desks still cost: no seed lifts a partial board past ~4.5.
+ */
+export const TUTORIAL_SEED = 2167;
 
 /** Steps the player passes by reading (no action moves them on); the tutorial ends once all are dismissed. */
 export const READ_ONLY = ['phases', 'review', 'payroll'];
