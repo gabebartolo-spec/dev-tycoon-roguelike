@@ -14,7 +14,7 @@ export function Coach() {
   if (!step || hub) return null;
   return (
     <AnimatePresence mode="wait">
-      <motion.aside key={step.id} className="coach" role="status" aria-live="polite"
+      <motion.aside key={step.id} className={step.warn ? 'coach coach-warn' : 'coach'} role="status" aria-live="polite"
         initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.25 }}>
         <b>{step.title}</b>
         <p>{step.text}</p>
