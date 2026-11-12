@@ -24,8 +24,11 @@ options for the next attempt.
 - A run is **3 Eras** (acts). Each Era is **4 Quarters**, and each Quarter is **12 weeks**.
 - **Payroll Day** ends each Quarter: the studio must hold `cash >= quarter_threshold` or take a debt strike; 3 strikes
   means bankruptcy. Thresholds rise each Quarter (the visible difficulty ramp).
-- **Era Showcase** (the boss) ends each Era: a trade show or platform launch with a demand target, a rival release and
-  a modifier (e.g. "only handheld games count"). Missing it is survivable but expensive.
+- **Rival Showdown** (the boss, D-4) ends each Era: a named rival game company launches a game into the same window,
+  and your release must **beat its review score**. Each rival has a known target score, a preferred genre and one
+  rule twist (e.g. "Bugs count double", "only Hype above 10 matters"). Its target is shown from the start of the Era,
+  so the player plans toward it. Losing costs a debt strike and market share; winning takes the rival's audience
+  (a demand boost) and reputation.
 - Target run length: 45–75 min, about 25–40 placement decisions. **No verified genre data exists for this** [R]; set
   it by playtest (M3).
 - Win: survive Era 3's Showcase. Score is studio valuation, and it feeds reputation.
@@ -88,3 +91,5 @@ options for the next attempt.
 - **D-2 Bankruptcy = 3 debt strikes.** Each missed Payroll Day adds a strike; the third ends the run.
 - **D-3 Time = one turn per phase.** No real-time clock; each placement phase resolves as one turn that advances a
   fixed number of weeks.
+- **D-4 Bosses = rival game companies.** Each Era ends in a Rival Showdown judged by review score: your release
+  versus the rival's.

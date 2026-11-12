@@ -1,35 +1,51 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { content } from './data/load';
+import { useGame } from './store/game';
+import { RunScreen } from './ui/RunScreen';
+import { signed } from './ui/format';
 
-function App() {
-  const [count, setCount] = useState(0)
-
+function GenrePicker() {
+  const dispatch = useGame((s) => s.dispatch);
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
+    <section className="picker">
+      <h2>Pitch a new game</h2>
+      <p className="muted">Each department's output is multiplied by the genre's weight.</p>
+      <div className="genres">
+        {content.genres.map((g) => (
+          <button key={g.id} className="genre" onClick={() => dispatch({ type: 'startProject', genreId: g.id })}>
+            <b>{g.name}</b>
+            {content.departments.map((d) => <span key={d}>{d} ×{g.weights[d]}</span>)}
+          </button>
+        ))}
       </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    </section>
+  );
 }
 
-export default App
+function Review() {
+  const { state } = useGame();
+  const r = state.releases[state.releases.length - 1];
+  if (!r) return null;
+  const genre = content.genres.find((g) => g.id === r.genreId)!;
+  return (
+    <section className="review" aria-live="polite">
+      <h2>Last release: {genre.name}, review <span className="score">{r.review}/10</span></h2>
+      <p className="muted">Quality {r.quality.toFixed(1)} vs expectation {content.review.expectation} · Hype {r.hype.toFixed(1)} · Bugs {r.bugs.toFixed(1)}</p>
+      <div className="why">
+        <div><h3>Helped</h3>{r.best.map((l) => <div key={l.source} className="pos">{signed(l.impact)} {l.source}</div>)}</div>
+        <div><h3>Hurt</h3>{r.worst.length ? r.worst.map((l) => <div key={l.source} className="neg">{signed(l.impact)} {l.source}</div>) : <div className="muted">nothing</div>}</div>
+      </div>
+    </section>
+  );
+}
+
+export default function App() {
+  const { state, newGame } = useGame();
+  return (
+    <main>
+      <h1>Dev Tycoon Roguelike <span className="muted">M1 placement prototype · seed {state.seed}</span></h1>
+      {state.dead ? (
+        <section className="review"><h2>Bankrupt in week {state.week}</h2><button className="primary" onClick={() => newGame()}>New run</button></section>
+      ) : state.project ? <RunScreen /> : (<><Review /><GenrePicker /></>)}
+    </main>
+  );
+}
