@@ -8,29 +8,48 @@ import * as THREE from 'three';
 export const INK = { line: '#17120e', paper: '#efe3c8', lineWidthPx: 2.5 };
 export const LIGHT = new THREE.Vector3(0.45, 0.85, 0.35).normalize();
 
+/** Skinning chunks are no-ops unless three compiles the material for a SkinnedMesh (it sets USE_SKINNING). */
+const skinned = /* glsl */ `
+  #include <skinbase_vertex>
+  #include <beginnormal_vertex>
+  #include <skinnormal_vertex>
+  #include <begin_vertex>
+  #include <skinning_vertex>`;
 export const fillVert = /* glsl */ `
-varying vec3 vN;
-void main() { vN = normalize(mat3(modelMatrix) * normal); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`;
+#include <common>
+#include <skinning_pars_vertex>
+varying vec3 vN; varying vec2 vUv;
+void main() {${skinned}
+  vN = normalize(mat3(modelMatrix) * objectNormal); vUv = uv;
+  gl_Position = projectionMatrix * modelViewMatrix * vec4(transformed, 1.0);
+}`;
 export const fillFrag = /* glsl */ `
-uniform vec3 uColor; uniform vec3 uLight; uniform vec3 uInk; uniform float uGlow;
-varying vec3 vN;
+uniform vec3 uColor; uniform vec3 uLight; uniform vec3 uInk; uniform float uGlow; uniform sampler2D uMap;
+varying vec3 vN; varying vec2 vUv;
 void main() {
   float d = dot(normalize(vN), uLight);
   float band = d > 0.55 ? 1.0 : d > 0.1 ? 0.78 : 0.58;
-  vec3 c = uColor * band;
+  #ifdef INK_MAP
+  vec3 base = texture2D(uMap, vUv).rgb;         // painted models: the basecolor texture takes the flat colour's place
+  #else
+  vec3 base = uColor;
+  #endif
+  vec3 c = base * band;
   if (band < 0.6 && uGlow < 0.5) {               // hatch the shadow band: diagonal ink strokes every 6px
     float h = mod(gl_FragCoord.x + gl_FragCoord.y, 6.0);
     if (h < 1.2) c = mix(c, uInk, 0.7);
   }
-  if (uGlow > 0.5) c = uColor;                  // emissive things (screens) stay flat and bright
+  if (uGlow > 0.5) c = base;                  // emissive things (screens) stay flat and bright
   gl_FragColor = vec4(c, 1.0);
   #include <colorspace_fragment>
 }`;
 export const lineVert = /* glsl */ `
+#include <common>
+#include <skinning_pars_vertex>
 uniform float uWidth; uniform vec2 uRes;
-void main() {
-  vec4 p = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-  vec3 n = normalize(mat3(projectionMatrix) * mat3(modelViewMatrix) * normal);
+void main() {${skinned}
+  vec4 p = projectionMatrix * modelViewMatrix * vec4(transformed, 1.0);
+  vec3 n = normalize(mat3(projectionMatrix) * mat3(modelViewMatrix) * objectNormal);
   p.xy += normalize(n.xy + 1e-6) * uWidth * 2.0 / uRes * p.w;
   gl_Position = p;
 }`;
