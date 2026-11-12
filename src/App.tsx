@@ -3,11 +3,11 @@ import { forecast, quarterOf, rivalById } from './sim/market';
 import { demandFor } from './sim/run';
 import { useGame } from './store/game';
 import { RunScreen } from './ui/RunScreen';
-import { money, signed } from './ui/format';
 import { Between } from './ui/Between';
 import { Hud } from './ui/Hud';
 import { PostMortem } from './ui/PostMortem';
 import { Hub } from './ui/Hub';
+import { Review } from "./ui/ReviewReveal";
 
 const ARROW = { up: '▲', flat: '▬', down: '▼' } as const;
 
@@ -89,29 +89,12 @@ function Showdowns() {
   );
 }
 
-function Review() {
-  const { state } = useGame();
-  const r = state.releases[state.releases.length - 1];
-  if (!r) return null;
-  const genre = content.genres.find((g) => g.id === r.genreId)!;
-  return (
-    <section className="review" aria-live="polite">
-      <h2>Last release: {content.topics.find((t) => t.id === r.topicId)?.name} {genre.name}, review <span className="score">{r.review}/10</span></h2>
-      <p className="muted">Cost {money(r.cost)} · sales so far {money(r.revenue)} · Quality {r.quality.toFixed(1)} vs expectation {r.expectation} · Hype {r.hype.toFixed(1)} · Bugs {r.bugs.toFixed(1)}</p>
-      <div className="why">
-        <div><h3>Helped</h3>{r.best.map((l) => <div key={l.source} className="pos">{signed(l.impact)} {l.source}</div>)}</div>
-        <div><h3>Hurt</h3>{r.worst.length ? r.worst.map((l) => <div key={l.source} className="neg">{signed(l.impact)} {l.source}</div>) : <div className="muted">nothing</div>}</div>
-      </div>
-    </section>
-  );
-}
-
 export default function App() {
   const { state, error, hub } = useGame();
   const over = state.dead || state.won;
   return (
     <main>
-      <h1>Dev Tycoon Roguelike <span className="muted">M4 meta-progression · seed {state.seed} · {content.studios.find((s) => s.id === state.options.studio)?.name} · Crunch {state.options.crunch}</span></h1>
+      <h1>Dev Tycoon Roguelike <span className="muted">M5 juice · seed {state.seed} · {content.studios.find((s) => s.id === state.options.studio)?.name} · Crunch {state.options.crunch}</span></h1>
       {!hub && <Hud />}
       {error && <div className="error" role="alert">{error}</div>}
       {!hub && !over && <EventCard />}

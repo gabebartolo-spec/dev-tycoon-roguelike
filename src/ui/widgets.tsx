@@ -1,4 +1,5 @@
 import { useDraggable } from '@dnd-kit/core';
+import { motion } from 'motion/react';
 import { signed, traitById, workerById } from './format';
 
 export function TraitChip({ id }: { id: string }) {
@@ -13,8 +14,12 @@ export function WorkerCard({ id, selected, onSelect, compact, static: still, bur
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: `worker:${id}`, data: { workerId: id }, disabled: still });
   const s = w.stats;
   return (
-    <div
+    <motion.div
       ref={still ? undefined : setNodeRef}
+      initial={compact ? { scale: 0.8, opacity: 0 } : false}
+      animate={{ scale: isDragging ? 1.05 : 1, opacity: 1 }}
+      whileHover={still ? undefined : { y: -4, boxShadow: '0 8px 18px rgba(0,0,0,0.35)' }}
+      transition={{ type: 'spring', stiffness: 520, damping: 26 }}
       {...(still ? {} : listeners)}
       {...(still ? {} : attributes)}
       onClick={onSelect}
@@ -34,7 +39,7 @@ export function WorkerCard({ id, selected, onSelect, compact, static: still, bur
       </div>
       <div className="tags">{w.tags.join(' · ')}</div>
       {!compact && <div className="traits">{w.traits.map((t) => <TraitChip key={t} id={t} />)}</div>}
-    </div>
+    </motion.div>
   );
 }
 

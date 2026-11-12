@@ -1,5 +1,6 @@
 import { DndContext, KeyboardSensor, PointerSensor, useDroppable, useSensor, useSensors, type DragEndEvent, type DragOverEvent } from '@dnd-kit/core';
-import { useState } from 'react';
+import { AnimatePresence, motion } from 'motion/react';
+import { useEffect, useRef, useState } from 'react';
 import { content } from '../data/load';
 import type { Dept } from '../data/schemas';
 import { phaseTotals, preview, weeklyCosts } from '../sim/run';
@@ -35,6 +36,18 @@ export function RunScreen() {
   const now = phaseTotals(state, content)!;
   const placed = new Set(Object.values(state.board).filter(Boolean) as string[]);
   const tray = state.roster.filter((id) => !placed.has(id) && !state.benched.includes(id));
+  // Floating delta: each change to this phase's totals rises from the totals bar and fades.
+  const prev = useRef(now);
+  const [floats, setFloats] = useState<{ id: number; q: number; h: number; b: number }[]>([]);
+  useEffect(() => {
+    const p = prev.current; prev.current = now;
+    const d = { q: now.quality - p.quality, h: now.hype - p.hype, b: now.bugs - p.bugs };
+    if (Math.abs(d.q) + Math.abs(d.h) + Math.abs(d.b) < 0.05) return;
+    const id = Date.now();
+    setFloats((f) => [...f, { id, ...d }]);
+    const t = setTimeout(() => setFloats((f) => f.filter((x) => x.id !== id)), 1200);
+    return () => clearTimeout(t);
+  }, [now.quality, now.hype, now.bugs]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Ghost deltas: the dragged card over a slot, or the selected card previewed on every slot.
   const ghostFor = (dept: Dept) => {
@@ -65,7 +78,11 @@ export function RunScreen() {
       <section className="totals">
         <div><b>{genre.name}</b> · {phase.name} ({project.phase + 1}/{content.phases.length}, {phase.weeks} wk, −{money(weeklyCosts(state, content) * phase.weeks)})</div>
         <div>Project so far: <Delta q={project.quality} h={project.hype} b={project.bugs} /></div>
-        <div>This phase: <Delta q={now.quality} h={now.hype} b={now.bugs} /></div>
+        <div className="float-host">This phase: <Delta q={now.quality} h={now.hype} b={now.bugs} />
+          <AnimatePresence>{floats.map((f) => (
+            <motion.span key={f.id} className="float-delta" aria-hidden initial={{ opacity: 0, y: 0 }} animate={{ opacity: 1, y: -26 }} exit={{ opacity: 0, y: -40 }} transition={{ duration: 0.6 }}>
+              <Delta q={f.q} h={f.h} b={f.b} />
+            </motion.span>))}</AnimatePresence></div>
       </section>
 
       <section className="board" aria-label="Project board" style={{ "--slots": content.departments.length } as React.CSSProperties}>
