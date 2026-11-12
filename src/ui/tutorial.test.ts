@@ -23,14 +23,18 @@ describe('tutorial coach follows run state', () => {
     expect(tutorialStep({ ...s, event: content.events[0].id }, none)?.id).toBe('event');
     expect(tutorialStep(s, none)?.id).not.toBe('event');
   });
-  it('the fixed seed gives a newcomer a good first review', () => {
-    let s: RunState = newRun(TUTORIAL_SEED, content);
-    s = apply(s, { type: 'startProject', ...s.pitch[0] }, content)[0];
-    while (s.project) {
-      for (const d of content.departments) { const w = s.roster.find((id) => !Object.values(s.board).includes(id)); if (w) s = apply(s, { type: 'place', dept: d, workerId: w }, content)[0]; }
-      s = apply(s, { type: 'endPhase' }, content)[0];
+  it('the fixed seed gives a newcomer a good first review on any pitch', () => {
+    const start = newRun(TUTORIAL_SEED, content);
+    let s = start;
+    for (let pitch = 0; pitch < start.pitch.length; pitch++) {
+      let r: RunState = apply(start, { type: 'startProject', ...start.pitch[pitch] }, content)[0];
+      while (r.project) {
+        for (const d of content.departments) { const w = r.roster.find((id) => !Object.values(r.board).includes(id)); if (w && !r.board[d]) r = apply(r, { type: 'place', dept: d, workerId: w }, content)[0]; }
+        r = apply(r, { type: 'endPhase' }, content)[0];
+      }
+      expect(r.releases[0].review).toBeGreaterThanOrEqual(9);
+      if (pitch === 0) s = r;
     }
-    expect(s.releases[0].review).toBeGreaterThanOrEqual(6);
     expect(tutorialStep(s, none)?.id).toBe('review');
     expect(tutorialStep(s, new Set(['phases', 'review']))?.id).toBe('payroll'); // payroll follows the first review
     expect(tutorialFinished(new Set(['phases', 'review', 'payroll']))).toBe(true);
