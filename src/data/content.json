@@ -11,7 +11,7 @@
   ],
   "rosterSize": 6,
   "startingCash": 40000,
-  "ai": { "tag": "ai", "debt": 0.3, "statPerEra": 1, "salaryPerEra": 20 },
+  "ai": { "tag": "ai", "debt": 0.15, "statPerEra": 1, "salaryPerEra": 20 },
   "economy": { "rentPerWeek": 500, "debtStrikes": 3, "severanceWeeks": 2, "rosterMax": 8, "draftSize": 3 },
   "sales": { "basePerWeek": 3000, "hypeScale": 20, "reviewExp": 2, "decay": 0.85, "minWeekly": 50 },
   "burnout": { "perWeekPlaced": 8, "recoverPerWeek": 10, "threshold": 100, "breakthroughChance": 0.35, "breakthroughQuality": 15, "breakdownBugs": 6 },
