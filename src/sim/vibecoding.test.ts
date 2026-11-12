@@ -34,14 +34,14 @@ describe('vibecoding: content is gated', () => {
     expect(plain.events.map((e) => e.id)).not.toContain('agent_deleted_prod');
     expect(plain.startWorkers).toEqual([]);
   });
-  it('the unlock adds the cards and events; Weekend Project starts with a Coding Agent, -$10k and a shorter Prototype', () => {
+  it('the unlock adds the cards and events; Weekend Project starts with a Coding Agent and a shorter Prototype', () => {
     expect(vibe.workers.map((w) => w.id)).toEqual(expect.arrayContaining(AI_IDS));
     expect(vibe.events.map((e) => e.id)).toContain('vibe_jam');
     const s = newRun(5, vibe, opts);
     expect(s.roster[0]).toBe('coding_agent');
     expect(s.roster).toHaveLength(vibe.rosterSize);
     expect(new Set(s.roster).size).toBe(s.roster.length);
-    expect(s.cash).toBe(base.startingCash - 10000);
+    expect(s.cash).toBe(base.startingCash);
     expect(vibe.phases[0].weeks).toBe(base.phases[0].weeks - 1);
   });
 });
