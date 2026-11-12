@@ -28,14 +28,19 @@ uniform vec3 uColor; uniform vec3 uLight; uniform vec3 uInk; uniform float uGlow
 varying vec3 vN; varying vec2 vUv;
 void main() {
   float d = dot(normalize(vN), uLight);
-  float band = d > 0.55 ? 1.0 : d > 0.1 ? 0.78 : 0.58;
   #ifdef INK_MAP
-  vec3 base = texture2D(uMap, vUv).rgb;         // painted models: the basecolor texture takes the flat colour's place
+  // painted models: the basecolor texture already carries painted shading, and faces tilt down out of the light,
+  // so the bands are gentle (-10% / -20%) and there is no hatching
+  vec3 base = texture2D(uMap, vUv).rgb;
+  float band = d > 0.55 ? 1.0 : d > 0.1 ? 0.9 : 0.8;
+  bool hatch = false;
   #else
   vec3 base = uColor;
+  float band = d > 0.55 ? 1.0 : d > 0.1 ? 0.78 : 0.58;
+  bool hatch = band < 0.6;
   #endif
   vec3 c = base * band;
-  if (band < 0.6 && uGlow < 0.5) {               // hatch the shadow band: diagonal ink strokes every 6px
+  if (hatch && uGlow < 0.5) {                    // hatch the shadow band: diagonal ink strokes every 6px
     float h = mod(gl_FragCoord.x + gl_FragCoord.y, 6.0);
     if (h < 1.2) c = mix(c, uInk, 0.7);
   }
