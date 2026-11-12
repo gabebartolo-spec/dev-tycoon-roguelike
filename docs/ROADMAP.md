@@ -27,10 +27,10 @@ by itself, stop and redesign before building anything else.
 
 ## M2: Survival loop
 Goal: a full run from first project to bankruptcy or win, playable in one sitting.
-- [ ] Weekly clock (turn-per-phase or real-time with pause; per Q3)
+- [ ] Turn per phase (D-3): each phase advances a data-defined number of weeks
 - [ ] Ledger with tagged lines (salary, rent, licences, sales); "weeks of runway" on the HUD
 - [ ] Sales curve after release (decay scaled by Hype × trend demand)
-- [ ] Quarters, Payroll Day thresholds, debt strikes (Q2), bankruptcy
+- [ ] Quarters, Payroll Day thresholds, 3 debt strikes (D-2), bankruptcy on the third
 - [ ] Hiring draft (1 of 3) between projects; firing with severance
 - [ ] Burnout meter; Breakdown/Breakthrough roll at 100 (seeded)
 - [ ] Post-mortem screen: cash graph, top 3 causes of death, best project
@@ -54,7 +54,7 @@ Goal: run 5 plays differently from run 1 because of choices, not just bigger num
 - [ ] `meta.json` with a version field and migrations; corruption fallback
 - [ ] Reputation formula from valuation + milestones
 - [ ] Studio Hub screen: an unlock tree (traits, archetypes, departments, genres, starting studios)
-- [ ] Starting-studio choice at run start (Open-Source Engine and others, per Q1)
+- [ ] Starting-studio choice at run start (Open-Source Engine and others; every unlock is a tradeoff, D-1)
 - [ ] Crunch Levels 1–15, each one stacking constraint, unlocked by winning
 - Exit: tests show unlocks apply only at run start; a new player's first run is identical with an empty meta.
 
@@ -97,5 +97,5 @@ Goal: run 5 plays differently from run 1 because of choices, not just bigger num
 | The core placement isn't fun | M1 gate, before any other system |
 | The run solves into one formula | Seeded markets, capped bonuses, bot sweeps (M3, M6) |
 | Opaque scoring (the genre's main complaint) | Previews + contributor breakdown are M1 requirements, not polish |
-| Meta power trivialises the game | Q1; unlocks apply at run start only; Crunch Levels |
+| Meta power trivialises the game | D-1 (options with tradeoffs only); unlocks apply at run start only; Crunch Levels |
 | The 3D view costs too much | It arrives in M5, driven by events, and can be turned off |

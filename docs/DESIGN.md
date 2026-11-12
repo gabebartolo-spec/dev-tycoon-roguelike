@@ -18,7 +18,7 @@ options for the next attempt.
    explained after. Opaque scoring is the genre's best-documented weakness [T].
 4. **Losses you can attribute.** Players return when they feel they "could have done something different" [R].
    The post-mortem screen always names the causes.
-5. **Meta adds options, not raw power** (default; see open question Q1). Difficulty grows through an opt-in ladder [R].
+5. **Meta adds options, not raw power** (D-1): every unlock is a tradeoff. Difficulty grows through an opt-in ladder [R].
 
 ## 3. Run structure
 - A run is **3 Eras** (acts). Each Era is **4 Quarters**, and each Quarter is **12 weeks**.
@@ -69,7 +69,7 @@ options for the next attempt.
   - New traits and worker archetypes in the draft pool
   - New departments (QA, Marketing) and genres
   - Starting-studio choices, e.g. **Open-Source Engine**: no licence fee, but −10% tech quality and slower
-    Prototype. A tradeoff rather than flat power (Q1).
+    Prototype. A tradeoff rather than flat power (D-1).
 - **Crunch Levels** (the Ascension equivalent): 15 levels, each adding one stacking constraint. Level N+1 unlocks when
   you win at N, and losing never removes progress [R].
 
@@ -82,8 +82,9 @@ options for the next attempt.
 - Telemetry (local, opt-in): pick rates, death causes, win rates per seed, which Mega Crit relied on for balance [R].
   Headless bot sweeps run in CI from M6.
 
-## 9. Open questions for the director
-- **Q1:** Should permanent upgrades add power (e.g. "start with +$5k") or only options/tradeoffs? Research leans
-  toward options [R]; your Open-Source Engine example is power-like as written.
-- **Q2:** Is bankruptcy a hard stop at a missed Payroll Day, or 3 debt strikes?
-- **Q3:** Real-time weeks with pause (as in GDT), or a turn per phase?
+## 9. Decisions (director, 2026-11-12)
+- **D-1 Meta = options with tradeoffs.** Every permanent unlock adds a choice that costs something; no flat stat or
+  cash boosts.
+- **D-2 Bankruptcy = 3 debt strikes.** Each missed Payroll Day adds a strike; the third ends the run.
+- **D-3 Time = one turn per phase.** No real-time clock; each placement phase resolves as one turn that advances a
+  fixed number of weeks.
