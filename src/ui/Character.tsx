@@ -31,7 +31,7 @@ export function Character({ url, phase = 0, ...props }: { url: string; phase?: n
       });
       const hull = new THREE.SkinnedMesh(hullGeo, new THREE.ShaderMaterial({
         vertexShader: lineVert, fragmentShader: lineFrag, side: THREE.BackSide,
-        uniforms: { uWidth: { value: INK.charLineWidthPx }, uRes: { value: res }, uInk: { value: new THREE.Color(INK.line) } },
+        uniforms: { uWidth: { value: INK.charLineWidthPx }, uDepthPush: { value: INK.charDepthPush }, uRes: { value: res }, uInk: { value: new THREE.Color(INK.line) } },
       }));
       hull.position.copy(m.position); hull.quaternion.copy(m.quaternion); hull.scale.copy(m.scale);
       m.parent!.add(hull);

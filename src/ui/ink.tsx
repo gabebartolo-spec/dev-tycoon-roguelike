@@ -17,7 +17,7 @@ export function Inked({ geometry, color, glow = false, outline = true, ...props 
   }, [geometry]);
   const line = useMemo(() => new THREE.ShaderMaterial({
     vertexShader: lineVert, fragmentShader: lineFrag, side: THREE.BackSide,
-    uniforms: { uWidth: { value: INK.lineWidthPx }, uRes: { value: res }, uInk: { value: new THREE.Color(INK.line) } },
+    uniforms: { uWidth: { value: INK.lineWidthPx }, uDepthPush: { value: 0 }, uRes: { value: res }, uInk: { value: new THREE.Color(INK.line) } },
   }), []);
   return (
     <group {...props}>
