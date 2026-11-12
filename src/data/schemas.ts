@@ -1,6 +1,9 @@
 import { z } from 'zod';
 
-export const Dept = z.enum(['code', 'design', 'art', 'audio']);
+export const Dept = z.enum(['code', 'design', 'art', 'audio', 'qa', 'marketing']);
+/** Stats a worker has; support departments (QA, Marketing) read one of these instead of their own. */
+export const CoreDept = z.enum(['code', 'design', 'art', 'audio']);
+export type CoreDept = z.infer<typeof CoreDept>;
 export type Dept = z.infer<typeof Dept>;
 
 /** What an effect changes: the holder's own slot output (before genre weight), or the project's hype / bugs. */
@@ -30,7 +33,7 @@ export const WorkerDef = z.object({
   salary: z.number().int().positive(), // per week
   tags: z.array(z.string()),
   stats: z.object({
-    code: z.number(), design: z.number(), art: z.number(), audio: z.number(),
+    code: z.number(), design: z.number(), art: z.number(), audio: z.number(),  // no qa/marketing stat: support depts read a core stat
     hype: z.number(), bugs: z.number(),
   }),
   traits: z.array(z.string()).min(1).max(3),
@@ -128,6 +131,13 @@ export const StudioDef = z.object({ id: z.string(), name: z.string(), text: z.st
 export type StudioDef = z.infer<typeof StudioDef>;
 
 /** Studio Hub unlock bought with reputation. Workers/genres it grants are out of the run until it is bought. */
+/**
+ * A support department: the worker placed there adds no quality. Their `stat` (plus output traits) is turned into
+ * hype or bugs at `perPoint` per point (negative bugs = bugs fixed). Genre weights do not apply.
+ */
+export const SupportDef = z.object({ dept: Dept, stat: CoreDept, metric: z.enum(['hype', 'bugs']), perPoint: z.number() });
+export type SupportDef = z.infer<typeof SupportDef>;
+
 export const UnlockDef = z.object({
   id: z.string(),
   name: z.string(),
@@ -136,12 +146,15 @@ export const UnlockDef = z.object({
   workers: z.array(z.string()).default([]),
   genres: z.array(z.string()).default([]),
   studio: z.string().optional(),
+  departments: z.array(Dept).default([]), // board slots added by this unlock
+  mods: z.array(Mod).default([]),         // run-start costs that come with it (e.g. upkeep)
 });
 export type UnlockDef = z.infer<typeof UnlockDef>;
 
 export const ContentPack = z.object({
   departments: z.array(Dept).min(1),
   phases: z.array(PhaseDef).min(1),
+  support: z.array(SupportDef).default([]),
   rosterSize: z.number().int().positive(),
   startingCash: z.number(),
   review: z.object({ expectation: z.number().positive(), bugPenalty: z.number().nonnegative(), min: z.number(), max: z.number() }),
@@ -239,7 +252,10 @@ export const ContentPack = z.object({
     for (const g of u.genres) if (!genreIds.has(g)) ctx.addIssue({ code: 'custom', message: `unlock ${u.id}: unknown genre ${g}` });
   }
   if (c.unlocks.some((u) => u.studio === c.studios[0].id)) ctx.addIssue({ code: 'custom', message: 'the default studio cannot be locked' });
-  for (const m of [...c.studios, ...c.crunch].flatMap((x) => x.mods))
+  for (const u of c.unlocks) for (const d of u.departments) if (!c.departments.includes(d)) ctx.addIssue({ code: 'custom', message: `unlock ${u.id}: department ${d} not on the board` });
+  for (const s of c.support) if (!c.departments.includes(s.dept)) ctx.addIssue({ code: 'custom', message: `support ${s.dept}: not on the board` });
+  for (const d of c.departments) if (!CoreDept.safeParse(d).success && !c.support.some((s) => s.dept === d)) ctx.addIssue({ code: 'custom', message: `department ${d} needs a support rule` });
+  for (const m of [...c.studios, ...c.crunch, ...c.unlocks].flatMap((x) => x.mods))
     if (m.kind === 'phaseWeeks' && !phaseIds.has(m.phase)) ctx.addIssue({ code: 'custom', message: `mod: bad phase ${m.phase}` });
   if (c.rosterSize > c.economy.rosterMax) ctx.addIssue({ code: 'custom', message: 'rosterSize > rosterMax' });
   if (c.rosterSize > c.workers.length) ctx.addIssue({ code: 'custom', message: 'rosterSize > workers' });

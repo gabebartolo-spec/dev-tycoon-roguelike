@@ -1,5 +1,9 @@
 {
-  "departments": ["code", "design", "art", "audio"],
+  "departments": ["code", "design", "art", "audio", "qa", "marketing"],
+  "support": [
+    { "dept": "qa", "stat": "code", "metric": "bugs", "perPoint": -0.5 },
+    { "dept": "marketing", "stat": "design", "metric": "hype", "perPoint": 0.4 }
+  ],
   "phases": [
     { "id": "prototype", "name": "Prototype", "weeks": 3 },
     { "id": "production", "name": "Production", "weeks": 5 },
@@ -42,7 +46,9 @@
     { "id": "studio_publisher", "name": "Publisher Deal", "text": "Starting studio: cash now, smaller sales forever.", "cost": 15, "studio": "publisher_deal" },
     { "id": "studio_coop", "name": "Worker Co-op", "text": "Starting studio: cheap team that burns out fast.", "cost": 20, "studio": "co_op" },
     { "id": "veterans", "name": "Industry veterans", "text": "Adds Gus (QA veteran) and Ivy (streamer) to the draft pool. They are pricey and crowd out cheaper hires.", "cost": 12, "workers": ["gus", "ivy"] },
-    { "id": "genre_strategy", "name": "Strategy genre", "text": "Adds Strategy to pitches and the market. A design-heavy genre; more genres also spread your pitches thinner.", "cost": 18, "genres": ["strategy"] }
+    { "id": "genre_strategy", "name": "Strategy genre", "text": "Adds Strategy to pitches and the market. A design-heavy genre; more genres also spread your pitches thinner.", "cost": 18, "genres": ["strategy"] },
+    { "id": "dept_qa", "name": "QA department", "text": "Adds a QA slot: the worker there fixes 0.5 bugs per Code point instead of adding quality. Upkeep +$150/wk.", "cost": 15, "departments": ["qa"], "mods": [ { "kind": "rent", "add": 150 } ] },
+    { "id": "dept_marketing", "name": "Marketing department", "text": "Adds a Marketing slot: the worker there adds 0.4 hype per Design point instead of quality. Upkeep +$250/wk.", "cost": 15, "departments": ["marketing"], "mods": [ { "kind": "rent", "add": 250 } ] }
   ],
   "crunch": [
     { "text": "Payroll thresholds +10%", "mods": [ { "kind": "threshold", "mul": 1.1 } ] },
