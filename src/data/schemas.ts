@@ -166,7 +166,14 @@ export const ContentPack = z.object({
     debt: z.number().min(0).max(1), // share of a shipped game's bugs that carries into the next game
     statPerEra: z.number(),         // + to the card's best stat per Era
     salaryPerEra: z.number(),       // + weekly salary per Era
-  }).default({ tag: 'ai', debt: 0.3, statPerEra: 1, salaryPerEra: 20 }),
+  }).default({ tag: 'ai', debt: 0.15, statPerEra: 1, salaryPerEra: 20 }),
+  /** Solo cards: workers with this tag can sit on several desks (each extra desk lengthens the phase); a game made
+   *  only by solo cards sells with a slower decay (Long Tail). */
+  solo: z.object({
+    tag: z.string(),
+    weeksPerHat: z.number().int().nonnegative(), // + weeks to a phase per extra desk one solo card holds
+    decay: z.number().min(0).max(1),             // weekly sales factor for an all-solo game (base is sales.decay)
+  }).default({ tag: 'solo', weeksPerHat: 1, decay: 0.92 }),
   review: z.object({ expectation: z.number().positive(), bugPenalty: z.number().nonnegative(), min: z.number(), max: z.number() }),
   economy: z.object({
     rentPerWeek: z.number().nonnegative(),

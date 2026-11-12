@@ -16,6 +16,7 @@ export interface Project {
   bugs: number;
   contributions: Contribution[];
   usedAi?: boolean; // an AI card worked a phase: the shipped game leaves tech debt
+  solo?: boolean;   // every phase so far was worked only by solo cards: the shipped game gets the Long Tail
 }
 
 export interface ReviewLine { source: string; impact: number } // impact on the 1-10 review score
@@ -36,7 +37,7 @@ export interface Release {
 }
 
 /** A released game still selling; `next` is next week's revenue, which decays every week. */
-export interface Sale { release: number; next: number }
+export interface Sale { release: number; next: number; decay?: number } // decay: own weekly factor (Long Tail)
 
 export interface Pitch { genreId: string; topicId: string }
 
@@ -112,6 +113,18 @@ function drawInt(s: RunState, max: number): [number, RunState] {
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 export const isAi = (id: string, content: ContentPack) => !!content.workers.find((w) => w.id === id)?.tags.includes(content.ai.tag);
+export const isSolo = (id: string, content: ContentPack) => !!content.workers.find((w) => w.id === id)?.tags.includes(content.solo.tag);
+
+/** Wearing every hat: a solo card on several desks adds weeksPerHat to the phase for each desk past the first. */
+export function hatWeeks(board: Board, content: ContentPack): number {
+  const desks = new Map<string, number>();
+  for (const id of Object.values(board)) if (id) desks.set(id, (desks.get(id) ?? 0) + 1);
+  return Math.max(0, ...[...desks.values()].map((n) => n - 1)) * content.solo.weeksPerHat;
+}
+
+/** Weeks the current phase takes with this board (base weeks plus hats). */
+export const phaseWeeks = (s: RunState, content: ContentPack) =>
+  s.project ? content.phases[s.project.phase].weeks + hatWeeks(s.board, content) : 0;
 
 /**
  * New Model Drops: from Era 2 on, every AI card has +statPerEra on its best stat and +salaryPerEra salary per Era.
@@ -146,7 +159,7 @@ export function runway(s: RunState, content: ContentPack): number {
   for (let w = 0; w < 520; w++) {
     cash += sales.reduce((a, b) => a + b, 0) - cost;
     if (cash < 0) return w;
-    sales = sales.map((x) => x * content.sales.decay).filter((x) => x >= content.sales.minWeekly);
+    sales = sales.map((x, i) => x * (s.sales[i]?.decay ?? content.sales.decay)).filter((x) => x >= content.sales.minWeekly);
   }
   return Infinity;
 }
@@ -255,7 +268,7 @@ function tick(s0: RunState, weeks: number, content: ContentPack): [RunState, Sim
       income += amount;
       releases[sale.release].revenue += amount;
     }
-    const sales = s.sales.map((x) => ({ ...x, next: x.next * S.decay })).filter((x) => x.next >= S.minWeekly);
+    const sales = s.sales.map((x) => ({ ...x, next: x.next * (x.decay ?? S.decay) })).filter((x) => x.next >= S.minWeekly);
     const cash = s.cash - salary - rent + income;
     s = {
       ...s, week: s.week + 1, cash, releases, sales,
@@ -428,7 +441,8 @@ export function apply(s: RunState, cmd: Command, content: ContentPack): [RunStat
       if (cmd.workerId && !s.roster.includes(cmd.workerId)) throw new Error(`not on roster ${cmd.workerId}`);
       if (cmd.workerId && s.benched.includes(cmd.workerId)) throw new Error(`benched ${cmd.workerId}`);
       const board: Board = { ...s.board };
-      for (const d of Object.keys(board) as Dept[]) if (cmd.workerId && board[d] === cmd.workerId) board[d] = null; // one slot per worker
+      // One desk per worker, except solo cards, which can wear several hats (see hatWeeks).
+      if (cmd.workerId && !isSolo(cmd.workerId, content)) for (const d of Object.keys(board) as Dept[]) if (board[d] === cmd.workerId) board[d] = null;
       board[cmd.dept] = cmd.workerId;
       return [{ ...s, board }, [{ type: 'placed', dept: cmd.dept, workerId: cmd.workerId }]];
     }
@@ -459,6 +473,8 @@ export function apply(s: RunState, cmd: Command, content: ContentPack): [RunStat
     case 'endPhase': {
       if (!s.project) throw new Error('no project');
       const phase = content.phases[s.project.phase];
+      const weeks = phaseWeeks(s, content);
+      const placed = Object.values(s.board).filter(Boolean) as string[];
       const totals = phaseTotals(s, content)!;
       const [afterBurnout, built, burnEvents] = burnoutPhase(s, {
         ...s.project,
@@ -467,12 +483,13 @@ export function apply(s: RunState, cmd: Command, content: ContentPack): [RunStat
         hype: s.project.hype + totals.hype,
         bugs: s.project.bugs + totals.bugs,
         contributions: [...s.project.contributions, ...totals.contributions],
-        usedAi: s.project.usedAi || Object.values(s.board).some((id) => !!id && isAi(id, content)),
-      }, phase.weeks, content);
-      const [ticked, tickEvents] = tick({ ...afterBurnout, project: built }, phase.weeks, content);
+        usedAi: s.project.usedAi || placed.some((id) => isAi(id, content)),
+        solo: (s.project.solo ?? true) && placed.every((id) => isSolo(id, content)), // an empty desk (a benched solo dev) keeps it
+      }, weeks, content);
+      const [ticked, tickEvents] = tick({ ...afterBurnout, project: built }, weeks, content);
       let next = ticked;
       const events: SimEvent[] = [
-        { type: 'phaseEnded', phaseId: phase.id, weeks: phase.weeks, payroll: next.projectCost - s.projectCost, totals },
+        { type: 'phaseEnded', phaseId: phase.id, weeks, payroll: next.projectCost - s.projectCost, totals },
         ...burnEvents, ...tickEvents,
       ];
       const project = next.project!; // events during the tick may have added hype/bugs
@@ -491,7 +508,7 @@ export function apply(s: RunState, cmd: Command, content: ContentPack): [RunStat
         next = {
           ...next, project: null, benched: [], releases: [...next.releases, release],
           carry: debt ? { ...next.carry, debt: (next.carry.debt ?? 0) + debt } : next.carry,
-          sales: [...next.sales, { release: next.releases.length, next: launchSales(release, demand, content) }],
+          sales: [...next.sales, { release: next.releases.length, next: launchSales(release, demand, content), ...(project.solo ? { decay: content.solo.decay } : {}) }],
           expectation: hit ? Math.min(M.expectationMax, next.expectation + M.expectationRise) : next.expectation,
           rivalGenres: copycat ? { ...next.rivalGenres, [copycat]: project.genreId } : next.rivalGenres,
         };
