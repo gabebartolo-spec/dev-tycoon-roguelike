@@ -68,11 +68,11 @@ describe('vibecoding: AI cards never burn out', () => {
 });
 
 describe('vibecoding: tech debt', () => {
-  it('on: a game an AI card worked on hands 30% of its bugs to the next game', () => {
+  it('on: a game an AI card worked on hands 15% of its bugs to the next game', () => {
     const s = ship(newRun(5, vibe, opts), { code: 'coding_agent' });
     const shipped = s.releases[0];
     expect(shipped.bugs).toBeGreaterThan(0);
-    expect(s.carry.debt).toBeCloseTo(Math.round(shipped.bugs * 0.3 * 10) / 10, 5);
+    expect(s.carry.debt).toBeCloseTo(Math.round(shipped.bugs * 0.15 * 10) / 10, 5);
     const next = step(s, { type: 'startProject', ...s.pitch[0] });
     expect(next.project!.contributions).toContainEqual({ source: 'Tech debt', metric: 'bugs', delta: s.carry.debt });
     expect(next.project!.bugs).toBeCloseTo(s.carry.bugs + s.carry.debt!, 5);
