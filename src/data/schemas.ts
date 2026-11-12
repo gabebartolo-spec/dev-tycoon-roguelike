@@ -23,20 +23,21 @@ export const TraitDef = z.object({
   id: z.string(),
   name: z.string(),
   text: z.string(),
-  effects: z.array(EffectDef).min(1),
+  effects: z.array(EffectDef), // empty: a rule card whose effect lives in the sim (e.g. Bundle Ready)
 });
 export type TraitDef = z.infer<typeof TraitDef>;
 
 export const WorkerDef = z.object({
   id: z.string(),
   name: z.string(),
-  salary: z.number().int().positive(), // per week
+  salary: z.number().int().nonnegative(), // per week (0 for asset packs)
+  price: z.number().int().nonnegative().default(0), // one-time cost when hired from the draft
   tags: z.array(z.string()),
   stats: z.object({
     code: z.number(), design: z.number(), art: z.number(), audio: z.number(),  // no qa/marketing stat: support depts read a core stat
     hype: z.number(), bugs: z.number(),
   }),
-  traits: z.array(z.string()).min(1).max(3),
+  traits: z.array(z.string()).max(3),
 });
 export type WorkerDef = z.infer<typeof WorkerDef>;
 
@@ -94,6 +95,7 @@ export const EventEffect = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('bugs'), value: z.number() }),
   z.object({ kind: z.literal('demand'), value: z.number().positive(), genre: z.string().optional() }), // x this Quarter's demand
   z.object({ kind: z.literal('share'), value: z.number().positive() }), // x market share (capped)
+  z.object({ kind: z.literal('bundle'), value: z.number().min(0).max(1) }), // sell every game still selling for this share of what it would still earn
 ]);
 export type EventEffect = z.infer<typeof EventEffect>;
 
@@ -125,6 +127,7 @@ export const Mod = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('shareMax'), mul: z.number().positive() }),
   z.object({ kind: z.literal('strikes'), add: z.number().int() }),
   z.object({ kind: z.literal('startWorker'), id: z.string() }),
+  z.object({ kind: z.literal('reskin') }), // Shovelware rules: reskins, impulse floor, saturation, lost share
   z.object({ kind: z.literal('rentFreeUpTo'), value: z.number().int().nonnegative() }), // rent 0 while roster <= value          // this worker is on the starting roster
 ]);
 export type Mod = z.infer<typeof Mod>;
@@ -175,6 +178,22 @@ export const ContentPack = z.object({
     weeksPerHat: z.number().int().nonnegative(), // + weeks to a phase per extra desk one solo card holds
     decay: z.number().min(0).max(1),             // weekly sales factor for an all-solo game (base is sales.decay)
   }).default({ tag: 'solo', weeksPerHat: 1, decay: 0.92 }),
+  /** Shovelware (off until the unlock's reskin mod): reskin your last game (same genre, new topic, skips Prototype),
+   *  which sells as if it reviewed at least impulseFloor, floods its genre (demand x (1 - saturation) for the rest of
+   *  the Quarter) and costs lost share (x shareLoss per reskin under restoreReview, down to shareMin) until a game
+   *  reviews restoreReview or more. Asset-tagged cards never burn out. A board with the bundle trait sells more, faster. */
+  shovelware: z.object({
+    reskin: z.boolean(),
+    assetTag: z.string(),
+    impulseFloor: z.number(),
+    saturation: z.number().min(0).max(1),
+    shareLoss: z.number().min(0).max(1),
+    shareMin: z.number().min(0).max(1),
+    restoreReview: z.number(),
+    bundleTrait: z.string(),
+    bundleSales: z.number().positive(), // launch sales x this
+    bundleDecay: z.number().gt(0).lt(1), // weekly sales factor
+  }).default({ reskin: false, assetTag: 'asset', impulseFloor: 5, saturation: 0.1, shareLoss: 0.95, shareMin: 0.5, restoreReview: 7, bundleTrait: 'bundle_ready', bundleSales: 1.2, bundleDecay: 0.8 }),
   review: z.object({ expectation: z.number().positive(), bugPenalty: z.number().nonnegative(), min: z.number(), max: z.number() }),
   economy: z.object({
     rentPerWeek: z.number().nonnegative(),
