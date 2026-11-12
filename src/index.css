@@ -18,7 +18,7 @@ button:disabled { opacity: 0.4; cursor: default; }
 :focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 .hud, .totals, .controls { display: flex; flex-wrap: wrap; gap: 8px 24px; align-items: center; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; }
 .controls { justify-content: flex-end; }
-.board { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.board { display: grid; grid-template-columns: repeat(var(--slots, 4), minmax(0, 1fr)); gap: 12px; } /* one row: neighbours = adjacency */
 .slot { background: var(--panel); border: 2px dashed var(--line); border-radius: 12px; padding: 8px; min-height: 190px; display: flex; flex-direction: column; gap: 8px; }
 .slot.over { border-color: var(--accent); }
 .slot-head { display: flex; justify-content: space-between; text-transform: capitalize; }
@@ -62,3 +62,5 @@ button:disabled { opacity: 0.4; cursor: default; }
 .hub select { font: inherit; padding: 4px; }
 .rep { margin: 10px 0; }
 .hub .genre span { text-transform: none; text-align: left; }
+.hub .bring { display: block; margin: 2px 0; }
+.slot-head .support-rule { text-transform: none; }

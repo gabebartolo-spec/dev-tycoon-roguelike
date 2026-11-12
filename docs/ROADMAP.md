@@ -60,7 +60,7 @@ Goal: run 5 plays differently from run 1 because of choices, not just bigger num
 - [x] `meta.json` with a version field and migrations; corruption fallback
 - [x] Reputation formula from valuation + milestones
 - [x] Studio Hub screen: unlocks for worker archetypes (with new traits), a genre and starting studios. New
-  departments (QA, Marketing) are not in yet: they change the board itself, so they need their own pass
+  departments: QA (Code → −0.5 bugs/pt, +$150/wk) and Marketing (Design → +0.4 hype/pt, +$250/wk) unlock for 15 rep each; owned unlocks can be left out per run. Bot win: none 38.7%, QA 43.3%, Marketing 42.3%
 - [x] Starting-studio choice at run start (Open-Source Engine and others; every unlock is a tradeoff, D-1)
 - [x] Crunch Levels 1–15, each one stacking constraint, unlocked by winning
 - Exit: tests show unlocks apply only at run start; a new player's first run is identical with an empty meta.

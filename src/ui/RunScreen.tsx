@@ -11,10 +11,12 @@ function Slot({ dept, workerId, ghost, onActivate }: { dept: Dept; workerId: str
   const { setNodeRef, isOver } = useDroppable({ id: `slot:${dept}`, data: { dept } });
   const genreId = useGame((s) => s.state.project?.genreId);
   const weight = content.genres.find((g) => g.id === genreId)?.weights[dept] ?? 0;
+  const support = content.support.find((s) => s.dept === dept);
+  const label = support ? `${support.stat} → ${support.perPoint > 0 ? "+" : ""}${support.perPoint} ${support.metric}/pt` : `×${weight}`;
   return (
     <div ref={setNodeRef} className={`slot ${isOver ? 'over' : ''}`}>
-      <button className="slot-head" onClick={onActivate} aria-label={`${dept} slot, weight ${weight}. Place selected worker`}>
-        <b>{dept}</b><span className="muted">×{weight}</span>
+      <button className="slot-head" onClick={onActivate} aria-label={`${dept} slot, ${label}. Place selected worker`}>
+        <b>{dept === "qa" ? "QA" : dept}</b><span className="muted support-rule">{label}</span>
       </button>
       {workerId ? <WorkerCard id={workerId} compact /> : <div className="empty">drop a worker</div>}
       <div className="ghost">{ghost ? <Delta q={ghost.quality} h={ghost.hype} b={ghost.bugs} /> : ' '}</div>
@@ -66,7 +68,7 @@ export function RunScreen() {
         <div>This phase: <Delta q={now.quality} h={now.hype} b={now.bugs} /></div>
       </section>
 
-      <section className="board" aria-label="Project board">
+      <section className="board" aria-label="Project board" style={{ "--slots": content.departments.length } as React.CSSProperties}>
         {content.departments.map((d) => (
           <Slot key={d} dept={d} workerId={state.board[d] ?? null} ghost={ghostFor(d)} onActivate={() => placeSelected(d)} />
         ))}

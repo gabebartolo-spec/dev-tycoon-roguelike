@@ -51,11 +51,16 @@ export function parseMeta(text: string | null): { meta: Meta; recovered: boolean
 export const studiosAvailable = (meta: Meta, content: ContentPack) =>
   content.studios.filter((s, i) => i === 0 || content.unlocks.some((u) => u.studio === s.id && meta.unlocked.includes(u.id)));
 
-/** Options for a run the player may actually start with this meta (throws otherwise). */
-export function optionsFor(meta: Meta, studio: string, crunch: number, content: ContentPack): RunOptions {
+/**
+ * Options for a run the player may actually start with this meta (throws otherwise). `leaveOut` drops owned unlocks
+ * from this run (e.g. skip a department and its upkeep), so owning an unlock never forces its cost on you.
+ */
+export function optionsFor(meta: Meta, studio: string, crunch: number, content: ContentPack, leaveOut: string[] = []): RunOptions {
   if (!studiosAvailable(meta, content).some((s) => s.id === studio)) throw new Error(`studio locked: ${studio}`);
   if (crunch < 0 || crunch > meta.crunchMax) throw new Error(`crunch locked: ${crunch}`);
-  return { studio, crunch, unlocks: [...meta.unlocked] };
+  const studioUnlock = content.unlocks.find((u) => u.studio === studio);
+  if (studioUnlock && leaveOut.includes(studioUnlock.id)) throw new Error('cannot leave out the chosen studio');
+  return { studio, crunch, unlocks: meta.unlocked.filter((id) => !leaveOut.includes(id)) };
 }
 
 export function buy(meta: Meta, unlockId: string, content: ContentPack): Meta {
@@ -119,19 +124,21 @@ function applyMod(c: ContentPack, m: Mod): ContentPack {
   }
 }
 
-/** The content pack a run plays on: locked workers and genres removed, then studio mods, then Crunch Levels 1..N. */
+/** The run's pack: locked workers, genres and departments removed, then studio, owned-unlock and Crunch Level mods. */
 export function runContent(base: ContentPack, o: RunOptions): ContentPack {
   const studio = base.studios.find((s) => s.id === o.studio);
   if (!studio) throw new Error(`unknown studio ${o.studio}`);
   const owned = base.unlocks.filter((u) => o.unlocks.includes(u.id));
   const lockedWorkers = new Set(base.unlocks.flatMap((u) => u.workers).filter((w) => !owned.some((u) => u.workers.includes(w))));
+  const lockedDepts = new Set(base.unlocks.flatMap((u) => u.departments).filter((d) => !owned.some((u) => u.departments.includes(d))));
   const lockedGenres = new Set(base.unlocks.flatMap((u) => u.genres).filter((g) => !owned.some((u) => u.genres.includes(g))));
   let c: ContentPack = {
     ...base,
     workers: base.workers.filter((w) => !lockedWorkers.has(w.id)),
     genres: base.genres.filter((g) => !lockedGenres.has(g.id)),
+    departments: base.departments.filter((d) => !lockedDepts.has(d)),
   };
-  const mods = [...studio.mods, ...base.crunch.slice(0, o.crunch).flatMap((l) => l.mods)];
+  const mods = [...studio.mods, ...owned.flatMap((u) => u.mods), ...base.crunch.slice(0, o.crunch).flatMap((l) => l.mods)];
   c = mods.reduce(applyMod, c);
   return c;
 }

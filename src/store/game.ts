@@ -22,7 +22,7 @@ interface GameStore {
   undo: () => void;
   openHub: () => void;
   buyUnlock: (id: string) => void;
-  startRun: (studio: string, crunch: number, seed?: number) => void;
+  startRun: (studio: string, crunch: number, leaveOut?: string[], seed?: number) => void;
 }
 
 const SAVE_KEY = 'dtr.save.v3';
@@ -102,9 +102,9 @@ export const useGame = create<GameStore>((set, get) => ({
       set({ error: (e as Error).message });
     }
   },
-  startRun: (studio, crunch, seed = freshSeed()) => {
+  startRun: (studio, crunch, leaveOut = [], seed = freshSeed()) => {
     try {
-      const options = optionsFor(get().meta, studio, crunch, baseContent);
+      const options = optionsFor(get().meta, studio, crunch, baseContent, leaveOut);
       persist(seed, options, []);
       set({ state: begin(seed, options), log: [], undoMarks: [], lastEvents: [], error: null, hub: false, metaRecovered: false });
     } catch (e) {

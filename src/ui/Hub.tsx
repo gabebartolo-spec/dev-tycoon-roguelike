@@ -9,6 +9,8 @@ export function Hub() {
   const studios = studiosAvailable(meta, baseContent);
   const [studio, setStudio] = useState(studios[0].id);
   const [crunch, setCrunch] = useState(meta.crunchMax);
+  const [leaveOut, setLeaveOut] = useState<string[]>([]);
+  const optional = baseContent.unlocks.filter((u) => !u.studio && meta.unlocked.includes(u.id));
   return (
     <section className="hub">
       <h2>Studio Hub</h2>
@@ -53,7 +55,16 @@ export function Hub() {
         {meta.crunchMax < baseContent.crunch.length ? `Win at Crunch ${meta.crunchMax} to unlock Crunch ${meta.crunchMax + 1}. ` : ''}
         Higher levels earn +{Math.round(baseContent.meta.crunchRepBonus * 100)}% reputation each.
       </p>
-      <button className="primary" onClick={() => startRun(studio, crunch)}>Start run</button>
+      {optional.length > 0 && (<>
+        <h3>Bring to this run</h3>
+        <p className="muted">Owned unlocks you leave out cost nothing this run.</p>
+        {optional.map((u) => (
+          <label key={u.id} className="bring">
+            <input type="checkbox" checked={!leaveOut.includes(u.id)} onChange={(e) => setLeaveOut(e.target.checked ? leaveOut.filter((x) => x !== u.id) : [...leaveOut, u.id])} /> {u.name}
+          </label>
+        ))}
+      </>)}
+      <button className="primary" onClick={() => startRun(studio, crunch, leaveOut)}>Start run</button>
     </section>
   );
 }

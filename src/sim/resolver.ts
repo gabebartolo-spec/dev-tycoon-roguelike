@@ -1,4 +1,4 @@
-import type { ContentPack, Dept, EffectDef, WorkerDef } from '../data/schemas';
+import type { ContentPack, CoreDept, Dept, EffectDef, WorkerDef } from '../data/schemas';
 
 export type Board = Partial<Record<Dept, string | null>>; // department -> worker id
 export type Metric = 'quality' | 'hype' | 'bugs';
@@ -52,7 +52,8 @@ export function resolve(board: Board, ctx: ResolveCtx): Totals {
       const nid = depts[j] !== undefined ? board[depts[j]] : null;
       if (nid) byId(nid).tags.forEach((t) => neighbourTags.add(t));
     }
-    const weight = genre.weights[dept] ?? 0;
+    const support = content.support.find((s) => s.dept === dept);
+    const weight = support ? 1 : genre.weights[dept] ?? 0;
 
     const effects: [string, EffectDef][] = [];
     for (const tid of w.traits) {
@@ -61,19 +62,22 @@ export function resolve(board: Board, ctx: ResolveCtx): Totals {
     }
     if (trend) for (const e of trend.effects) if (active(e, dept, ctx.phaseId, neighbourTags)) effects.push([`Trend: ${trend.name}`, e]);
 
-    // Own output, weighted by genre.
-    let out = w.stats[dept];
-    contributions.push({ source: `${w.name} (${dept})`, metric: 'quality', delta: out * weight });
+    // Own output: weighted by genre into quality, or for a support dept converted into hype / bugs.
+    const metric: Metric = support ? support.metric : 'quality';
+    const k = support ? support.perPoint : weight;
+    let out = support ? w.stats[support.stat] : w.stats[dept as CoreDept];
+    contributions.push({ source: `${w.name} (${dept})`, metric, delta: out * k });
     for (const [src, e] of effects) if (e.target === 'output' && e.op === 'add') {
       out += e.value;
-      contributions.push({ source: src, metric: 'quality', delta: e.value * weight });
+      contributions.push({ source: src, metric, delta: e.value * k });
     }
     for (const [src, e] of effects) if (e.target === 'output' && e.op === 'mul') {
       const before = out;
       out *= e.value;
-      contributions.push({ source: src, metric: 'quality', delta: (out - before) * weight });
+      contributions.push({ source: src, metric, delta: (out - before) * k });
     }
-    quality += Math.max(0, out) * weight;
+    const amount = Math.max(0, out) * k;
+    if (metric === 'quality') quality += amount; else if (metric === 'hype') hype += amount; else bugs += amount;
 
     if (w.stats.hype) { hype += w.stats.hype; contributions.push({ source: w.name, metric: 'hype', delta: w.stats.hype }); }
     if (w.stats.bugs) { bugs += w.stats.bugs; contributions.push({ source: w.name, metric: 'bugs', delta: w.stats.bugs }); }

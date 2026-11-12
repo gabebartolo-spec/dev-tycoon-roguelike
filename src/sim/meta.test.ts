@@ -4,16 +4,22 @@ import { ContentPack } from '../data/schemas';
 import { playBot } from './bot';
 import { buy, defaultOptions, emptyMeta, optionsFor, parseMeta, recordRun, reputationFor, runContent, studiosAvailable, type Meta } from './meta';
 import { apply, newRun, replay, type Command, type RunState } from './run';
+import { resolve } from './resolver';
 
 const base = ContentPack.parse(raw);
 const rich: Meta = { ...emptyMeta(), reputation: 1000 };
 
 describe('meta: a first run with empty meta is the plain game', () => {
-  it('default options only remove unlock-gated workers and genres; every other value is untouched', () => {
+  it('default options only remove unlock-gated workers, genres and departments; every other value is untouched', () => {
     const c = runContent(base, defaultOptions(base));
     const gatedW = new Set(base.unlocks.flatMap((u) => u.workers));
     const gatedG = new Set(base.unlocks.flatMap((u) => u.genres));
-    expect(c).toEqual({ ...base, workers: base.workers.filter((w) => !gatedW.has(w.id)), genres: base.genres.filter((g) => !gatedG.has(g.id)) });
+    const gatedD = new Set(base.unlocks.flatMap((u) => u.departments));
+    expect(c).toEqual({
+      ...base, workers: base.workers.filter((w) => !gatedW.has(w.id)), genres: base.genres.filter((g) => !gatedG.has(g.id)),
+      departments: base.departments.filter((d) => !gatedD.has(d)),
+    });
+    expect(c.departments).toEqual(['code', 'design', 'art', 'audio']);
     expect(c.workers.map((w) => w.id)).not.toContain('gus');
     expect(c.genres.map((g) => g.id)).not.toContain('strategy');
   });
@@ -127,5 +133,49 @@ describe('meta.json: versioned, migrated, corruption-safe', () => {
   it('corrupt, wrong-shaped or newer files fall back to empty and report it', () => {
     for (const text of ['{nope', '[]', '"x"', JSON.stringify({ version: 1, reputation: -3 }), JSON.stringify({ version: 99 })])
       expect(parseMeta(text)).toEqual({ meta: emptyMeta(), recovered: true });
+  });
+});
+
+describe('support departments (QA, Marketing)', () => {
+  const qaOpts = optionsFor(buy(rich, 'dept_qa', base), 'garage', 0, base);
+  const qa = runContent(base, qaOpts);
+  const plain = runContent(base, defaultOptions(base));
+  const ctx = (c: typeof base) => ({ content: c, genreId: 'rpg', phaseId: 'production' });
+  it('the slot exists only when unlocked, and costs its upkeep', () => {
+    expect(newRun(1, plain).board).not.toHaveProperty('qa');
+    expect(newRun(1, qa, qaOpts).board).toHaveProperty('qa', null);
+    expect(qa.economy.rentPerWeek).toBe(plain.economy.rentPerWeek + 150);
+  });
+  it('QA: the worker fixes bugs from their Code stat and adds no quality (on vs off)', () => {
+    // Cy: code 4, traits bug_hunter (-2 bugs) and team_player (beside a coder: +2 output).
+    const off = resolve({ code: 'ada' }, ctx(qa));
+    const on = resolve({ code: 'ada', qa: 'cy' }, ctx(qa));
+    expect(on.quality).toBeCloseTo(off.quality);
+    // QA output = 4 code -> -2 bugs (team_player stays off: QA's neighbours hold no coder); bug_hunter -2 more.
+    expect(on.bugs).toBeCloseTo(Math.max(0, off.bugs - 2 - 2));
+    expect(on.contributions.some((x) => x.source === 'Cy (qa)' && x.metric === 'bugs' && x.delta === -2)).toBe(true);
+  });
+  it('Marketing: the worker adds hype from their Design stat and no quality (on vs off)', () => {
+    const m = runContent(base, optionsFor(buy(rich, 'dept_marketing', base), 'garage', 0, base));
+    const off = resolve({ code: 'ada' }, ctx(m));
+    const on = resolve({ code: 'ada', marketing: 'mo' }, ctx(m)); // Mo: design 5, hype 1, UI Wizard only in Design
+    expect(on.quality).toBeCloseTo(off.quality);
+    expect(on.hype).toBeCloseTo(off.hype + 5 * 0.4 + 1);
+  });
+  it('a department with no support rule and no core stat is rejected', () => {
+    expect(() => ContentPack.parse({ ...(raw as object), support: [] })).toThrow(/needs a support rule/);
+  });
+});
+
+describe('leaving an owned unlock out of a run', () => {
+  it('drops its content and its upkeep for that run only (on vs off)', () => {
+    const m = buy(buy({ ...emptyMeta(), reputation: 100 }, 'dept_qa', base), 'veterans', base);
+    const all = runContent(base, optionsFor(m, 'garage', 0, base));
+    const noQa = runContent(base, optionsFor(m, 'garage', 0, base, ['dept_qa']));
+    expect(all.departments).toContain('qa');
+    expect(noQa.departments).not.toContain('qa');
+    expect(noQa.economy.rentPerWeek).toBe(all.economy.rentPerWeek - 150);
+    expect(noQa.workers.some((w) => w.id === 'gus')).toBe(true);
+    expect(m.unlocked).toContain('dept_qa'); // still owned
   });
 });
