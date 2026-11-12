@@ -96,10 +96,10 @@ export default function App() {
   return (
     <main>
       <h1>Dev Tycoon Roguelike <span className="muted">M5 juice · seed {state.seed} · {content.studios.find((s) => s.id === state.options.studio)?.name} · Crunch {state.options.crunch}</span></h1>
+      <Coach />
       {!hub && <Hud />}
       {error && <div className="error" role="alert">{error}</div>}
       {!hub && !over && <EventCard />}
-      <Coach />
       {hub ? <Hub /> : over ? <PostMortem /> : state.project ? <RunScreen /> : (<><Showdowns /><Review /><MarketMap /><Between /><PitchPicker /></>)}
     </main>
   );

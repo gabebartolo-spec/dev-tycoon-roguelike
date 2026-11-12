@@ -68,9 +68,9 @@ button:disabled { opacity: 0.4; cursor: default; }
 .float-delta { position: absolute; left: calc(100% + 14px); top: 0; pointer-events: none; font-weight: 600; white-space: nowrap; }
 .review-step { display: block; }
 .studio-view { height: 260px; border-radius: 10px; overflow: hidden; border: 1px solid var(--line); background: #1b1b22; }
-.coach { pointer-events: none; position: fixed; left: 16px; bottom: 16px; max-width: 340px; background: var(--panel); border: 2px solid var(--accent); border-radius: 12px; padding: 12px 14px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); z-index: 20; }
-.coach p { margin: 6px 0 10px; }
-.coach button { pointer-events: auto; }
-.coach-buttons { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .link { background: none; border: none; color: var(--muted); text-decoration: underline; padding: 4px 0; }
-@media (max-width: 720px) { .coach { left: 16px; right: 16px; max-width: none; } }
+/* Tutorial coach: a strip in the page flow that sticks to the top, so it pushes the board down instead of covering it. */
+.coach { position: sticky; top: 8px; z-index: 20; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 4px 16px; background: var(--panel); border: 2px solid var(--accent); border-radius: 12px; padding: 10px 14px; box-shadow: 0 6px 18px rgba(0,0,0,0.18); }
+.coach p { margin: 0; }
+.coach-buttons { display: flex; align-items: center; gap: 12px; }
+@media (max-width: 720px) { .coach { grid-template-columns: 1fr; } .coach-buttons { justify-content: space-between; } }

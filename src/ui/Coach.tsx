@@ -15,7 +15,7 @@ export function Coach() {
   return (
     <AnimatePresence mode="wait">
       <motion.aside key={step.id} className="coach" role="status" aria-live="polite"
-        initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 12 }} transition={{ duration: 0.25 }}>
+        initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.25 }}>
         <b>{step.title}</b>
         <p>{step.text}</p>
         <div className="coach-buttons">
