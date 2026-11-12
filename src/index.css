@@ -72,5 +72,7 @@ button:disabled { opacity: 0.4; cursor: default; }
 /* Tutorial coach: a strip in the page flow that sticks to the top, so it pushes the board down instead of covering it. */
 .coach { position: sticky; top: 8px; z-index: 20; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 4px 16px; background: var(--panel); border: 2px solid var(--accent); border-radius: 12px; padding: 10px 14px; box-shadow: 0 6px 18px rgba(0,0,0,0.18); }
 .coach p { margin: 0; }
+.coach-warn { border-color: var(--neg); }
+.coach-warn b { color: var(--neg); }
 .coach-buttons { display: flex; align-items: center; gap: 12px; }
 @media (max-width: 720px) { .coach { grid-template-columns: 1fr; } .coach-buttons { justify-content: space-between; } }
