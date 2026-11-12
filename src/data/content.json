@@ -15,7 +15,8 @@
     { "id": "action", "name": "Action", "weights": { "code": 1.3, "design": 0.8, "art": 1.0, "audio": 0.6 } },
     { "id": "rpg", "name": "RPG", "weights": { "code": 0.8, "design": 1.4, "art": 0.9, "audio": 0.6 } },
     { "id": "puzzle", "name": "Puzzle", "weights": { "code": 0.7, "design": 1.5, "art": 0.6, "audio": 0.7 } },
-    { "id": "rhythm", "name": "Rhythm", "weights": { "code": 0.7, "design": 0.8, "art": 0.8, "audio": 1.5 } }
+    { "id": "rhythm", "name": "Rhythm", "weights": { "code": 0.7, "design": 0.8, "art": 0.8, "audio": 1.5 } },
+    { "id": "strategy", "name": "Strategy", "weights": { "code": 1.0, "design": 1.3, "art": 0.7, "audio": 0.5 } }
   ],
   "trends": [
     { "id": "indie_darling", "name": "Indie Darling", "effects": [ { "trigger": "slot:art", "target": "hype", "op": "add", "value": 1 } ], "demand": { "puzzle": 1.3, "action": 0.9 } },
@@ -29,6 +30,37 @@
     "shareWin": 1.15, "shareLose": 0.85, "shareMin": 0.5, "shareMax": 1.5,
     "pitchOptions": 3, "eventChance": 0.75
   },
+  "meta": { "valuationPerRep": 2000, "salesWeeksValued": 10, "repPerHit": 2, "repPerShowdown": 5, "repPerQuarter": 1, "repForWin": 10, "crunchRepBonus": 0.1 },
+  "studios": [
+    { "id": "garage", "name": "Garage Studio", "text": "Where everyone starts. No perks, no catches.", "mods": [] },
+    { "id": "open_source", "name": "Open-Source Engine", "text": "No licence fee (rent -$200/wk), but code counts 10% less and Prototype takes a week longer.", "mods": [ { "kind": "rent", "add": -200 }, { "kind": "deptWeight", "dept": "code", "mul": 0.9 }, { "kind": "phaseWeeks", "phase": "prototype", "add": 1 } ] },
+    { "id": "publisher_deal", "name": "Publisher Deal", "text": "+$30k up front, but the publisher takes 15% of every sale.", "mods": [ { "kind": "cash", "add": 30000 }, { "kind": "sales", "mul": 0.85 } ] },
+    { "id": "co_op", "name": "Worker Co-op", "text": "Salaries 10% lower, but the team burns out twice as fast and you start one worker short.", "mods": [ { "kind": "salary", "mul": 0.9 }, { "kind": "burnout", "mul": 2 }, { "kind": "rosterSize", "add": -1 } ] }
+  ],
+  "unlocks": [
+    { "id": "studio_open_source", "name": "Open-Source Engine", "text": "Starting studio: cheaper rent, weaker code, slower Prototype.", "cost": 10, "studio": "open_source" },
+    { "id": "studio_publisher", "name": "Publisher Deal", "text": "Starting studio: cash now, smaller sales forever.", "cost": 15, "studio": "publisher_deal" },
+    { "id": "studio_coop", "name": "Worker Co-op", "text": "Starting studio: cheap team that burns out fast.", "cost": 20, "studio": "co_op" },
+    { "id": "veterans", "name": "Industry veterans", "text": "Adds Gus (QA veteran) and Ivy (streamer) to the draft pool. They are pricey and crowd out cheaper hires.", "cost": 12, "workers": ["gus", "ivy"] },
+    { "id": "genre_strategy", "name": "Strategy genre", "text": "Adds Strategy to pitches and the market. A design-heavy genre; more genres also spread your pitches thinner.", "cost": 18, "genres": ["strategy"] }
+  ],
+  "crunch": [
+    { "text": "Payroll thresholds +10%", "mods": [ { "kind": "threshold", "mul": 1.1 } ] },
+    { "text": "Critics expect more: expectation +5", "mods": [ { "kind": "expectation", "add": 5 } ] },
+    { "text": "Rent +$100/wk", "mods": [ { "kind": "rent", "add": 100 } ] },
+    { "text": "Rival targets +0.5", "mods": [ { "kind": "rivalTarget", "add": 0.5 } ] },
+    { "text": "Start with $5k less", "mods": [ { "kind": "cash", "add": -5000 } ] },
+    { "text": "More events: +15% chance per Quarter", "mods": [ { "kind": "eventChance", "add": 0.15 } ] },
+    { "text": "Sales fade faster", "mods": [ { "kind": "decay", "mul": 0.97 } ] },
+    { "text": "Burnout builds 20% faster", "mods": [ { "kind": "burnout", "mul": 1.2 } ] },
+    { "text": "One fewer pitch to choose from", "mods": [ { "kind": "pitchOptions", "add": -1 } ] },
+    { "text": "Rivals steal 10% more demand", "mods": [ { "kind": "rivalSteal", "add": 0.1 } ] },
+    { "text": "Salaries +10%", "mods": [ { "kind": "salary", "mul": 1.1 } ] },
+    { "text": "Market share cap lowered 15%", "mods": [ { "kind": "shareMax", "mul": 0.85 } ] },
+    { "text": "Payroll thresholds +$5k", "mods": [ { "kind": "threshold", "mul": 1, "add": 5000 } ] },
+    { "text": "Rival targets +0.5 more", "mods": [ { "kind": "rivalTarget", "add": 0.5 } ] },
+    { "text": "Two debt strikes end the run", "mods": [ { "kind": "strikes", "add": -1 } ] }
+  ],
   "topics": [
     { "id": "space", "name": "Space", "fit": { "action": 1.2, "puzzle": 0.9 } },
     { "id": "fantasy", "name": "Fantasy", "fit": { "rpg": 1.3, "rhythm": 0.8 } },
@@ -113,7 +145,9 @@
       { "trigger": "phase:prototype", "target": "output", "op": "add", "value": 2 },
       { "trigger": "phase:polish", "target": "bugs", "op": "add", "value": 2 } ] },
     { "id": "cozy_vibes", "name": "Cozy Vibes", "text": "Beside an artist: +1 hype", "effects": [
-      { "trigger": "adjacent:artist", "target": "hype", "op": "add", "value": 1 } ] }
+      { "trigger": "adjacent:artist", "target": "hype", "op": "add", "value": 1 } ] },
+    { "id": "qa_eye", "name": "QA Eye", "text": "Polish: -3 bugs", "effects": [ { "trigger": "phase:polish", "target": "bugs", "op": "add", "value": -3 } ] },
+    { "id": "streamer", "name": "Streamer", "text": "+3 hype; output x0.8", "effects": [ { "trigger": "always", "target": "hype", "op": "add", "value": 3 }, { "trigger": "always", "target": "output", "op": "mul", "value": 0.8 } ] }
   ],
   "workers": [
     { "id": "ada", "name": "Ada", "salary": 260, "tags": ["coder", "senior"], "stats": { "code": 5, "design": 1, "art": 0, "audio": 0, "hype": 0, "bugs": 1 }, "traits": ["spaghetti_coder", "night_owl"] },
@@ -127,6 +161,8 @@
     { "id": "lux", "name": "Lux", "salary": 230, "tags": ["artist", "senior"], "stats": { "code": 0, "design": 1, "art": 4, "audio": 0, "hype": 1, "bugs": 0 }, "traits": ["generalist", "mentor"] },
     { "id": "kai", "name": "Kai", "salary": 220, "tags": ["audio", "senior"], "stats": { "code": 0, "design": 0, "art": 0, "audio": 5, "hype": 1, "bugs": 0 }, "traits": ["chiptune_fan"] },
     { "id": "noa", "name": "Noa", "salary": 140, "tags": ["audio", "junior"], "stats": { "code": 0, "design": 1, "art": 0, "audio": 3, "hype": 0, "bugs": 0 }, "traits": ["team_player", "generalist"] },
-    { "id": "vee", "name": "Vee", "salary": 180, "tags": ["junior"], "stats": { "code": 2, "design": 2, "art": 2, "audio": 2, "hype": 0, "bugs": 0 }, "traits": ["generalist", "duct_tape"] }
+    { "id": "vee", "name": "Vee", "salary": 180, "tags": ["junior"], "stats": { "code": 2, "design": 2, "art": 2, "audio": 2, "hype": 0, "bugs": 0 }, "traits": ["generalist", "duct_tape"] },
+    { "id": "gus", "name": "Gus", "salary": 320, "tags": ["coder", "senior"], "stats": { "code": 4, "design": 1, "art": 0, "audio": 0, "hype": 0, "bugs": 0 }, "traits": ["qa_eye", "bug_hunter"] },
+    { "id": "ivy", "name": "Ivy", "salary": 300, "tags": ["designer", "senior"], "stats": { "code": 0, "design": 3, "art": 1, "audio": 1, "hype": 3, "bugs": 0 }, "traits": ["streamer"] }
   ]
 }

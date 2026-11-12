@@ -57,12 +57,15 @@ Goal: two seeds should feel like two different markets.
 
 ## M4: Meta-progression
 Goal: run 5 plays differently from run 1 because of choices, not just bigger numbers.
-- [ ] `meta.json` with a version field and migrations; corruption fallback
-- [ ] Reputation formula from valuation + milestones
-- [ ] Studio Hub screen: an unlock tree (traits, archetypes, departments, genres, starting studios)
-- [ ] Starting-studio choice at run start (Open-Source Engine and others; every unlock is a tradeoff, D-1)
-- [ ] Crunch Levels 1–15, each one stacking constraint, unlocked by winning
+- [x] `meta.json` with a version field and migrations; corruption fallback
+- [x] Reputation formula from valuation + milestones
+- [x] Studio Hub screen: unlocks for worker archetypes (with new traits), a genre and starting studios. New
+  departments (QA, Marketing) are not in yet: they change the board itself, so they need their own pass
+- [x] Starting-studio choice at run start (Open-Source Engine and others; every unlock is a tradeoff, D-1)
+- [x] Crunch Levels 1–15, each one stacking constraint, unlocked by winning
 - Exit: tests show unlocks apply only at run start; a new player's first run is identical with an empty meta.
+- Done: both exit tests are in src/sim/meta.test.ts. Bot win rates over 300 seeds: Garage 38.7%, Open-Source 37.3%,
+  Publisher 40.3%, Co-op 39.3% (each tuned to a tradeoff). Crunch 5 15.5%, 10 1.5%, 15 0% for the greedy bot.
 
 ## M5: Content, juice and the studio view
 - [ ] Content to 40 workers, 60 traits, 10 genres, 25 topics, 40 events, 6 rival companies

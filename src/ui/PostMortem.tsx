@@ -19,7 +19,7 @@ function CashGraph({ points }: { points: number[] }) {
 
 /** End of run: cash graph, top 3 causes of death, best project. */
 export function PostMortem() {
-  const { state, newGame } = useGame();
+  const { state, openHub, lastRep } = useGame();
   const pm = postMortem(state, content);
   const genre = (id: string) => content.genres.find((g) => g.id === id)!.name;
   return (
@@ -37,7 +37,13 @@ export function PostMortem() {
           {pm.best ? <div>{genre(pm.best.genreId)}, week {pm.best.week}: review {pm.best.review}/10, earned {money(pm.best.revenue)} on {money(pm.best.cost)} cost</div> : <div className="muted">nothing shipped</div>}
         </div>
       </div>
-      <button className="primary" onClick={() => newGame()}>New run</button>
+      {lastRep && (
+        <div className="rep">
+          <h3>Reputation earned: +{lastRep.total}</h3>
+          {lastRep.lines.filter((l) => l.rep).map((l) => <div key={l.label}>+{l.rep} {l.label}</div>)}
+        </div>
+      )}
+      <button className="primary" onClick={openHub}>Studio Hub</button>
     </section>
   );
 }

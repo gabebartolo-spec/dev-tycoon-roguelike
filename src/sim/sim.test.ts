@@ -3,6 +3,7 @@ import raw from '../data/content.json';
 import { ContentPack, type EffectDef } from '../data/schemas';
 import { forecast, generateMarket } from './market';
 import { resolve, type Board } from './resolver';
+import { defaultOptions, runContent } from './meta';
 import { apply, demandFor, launchSales, newRun, postMortem, preview, replay, twistedReview, type Command, type RunState } from './run';
 
 const ECONOMY = { rentPerWeek: 0, debtStrikes: 3, severanceWeeks: 2, rosterMax: 3, draftSize: 3 };
@@ -15,6 +16,7 @@ const MARKET = {
   shareWin: 1.2, shareLose: 0.8, shareMin: 0.5, shareMax: 1.5, pitchOptions: 1, eventChance: 0,
 };
 const NO_TWIST = { text: '' };
+const META = { valuationPerRep: 100, salesWeeksValued: 0, repPerHit: 2, repPerShowdown: 5, repPerQuarter: 1, repForWin: 10, crunchRepBonus: 0.1 };
 
 /** Tiny fixed pack: tests stay valid whatever the real balance numbers become. */
 function pack(effects: EffectDef[], extra: Record<string, unknown> = {}): ContentPack {
@@ -29,6 +31,7 @@ function pack(effects: EffectDef[], extra: Record<string, unknown> = {}): Conten
     burnout: { perWeekPlaced: 0, recoverPerWeek: 0, threshold: 100, breakthroughChance: 0.5, breakthroughQuality: 5, breakdownBugs: 5 },
     calendar: CALENDAR,
     market: MARKET,
+    meta: META, studios: [{ id: 'home', name: 'Home', text: '', mods: [] }], unlocks: [], crunch: [],
     topics: [{ id: 't', name: 'T' }],
     platforms: [{ id: 'p', name: 'P', curve: [1] }],
     rivals: [{ id: 'r', name: 'R', genre: 'g', targets: [5], twist: NO_TWIST }],
@@ -49,9 +52,9 @@ const pitchCmd = (s: RunState, i = 0): Command => ({ type: 'startProject', ...s.
 describe('content', () => {
   it('real content pack validates', () => {
     const c = ContentPack.parse(raw);
-    expect(c.workers).toHaveLength(12);
-    expect(c.traits).toHaveLength(16);
-    expect(c.genres).toHaveLength(4);
+    expect(c.workers).toHaveLength(14); // 12 + 2 locked behind the veterans unlock
+    expect(c.traits).toHaveLength(18);
+    expect(c.genres).toHaveLength(5);
     expect(c.events).toHaveLength(20);
     expect(c.rivals).toHaveLength(6);
   });
@@ -105,7 +108,8 @@ describe('resolver triggers (on vs off)', () => {
 });
 
 describe('run', () => {
-  const c = ContentPack.parse(raw);
+  const base = ContentPack.parse(raw);
+  const c = runContent(base, defaultOptions(base)); // the run pack a first-time player gets
   /** Plays commands, answering any event with choice 0 so scripted runs never stall. */
   const play = (seed: number, cmds: ((s: RunState) => Command)[]) => cmds.reduce<RunState>((s, f) => {
     if (s.event) s = apply(s, { type: 'chooseEvent', choice: 0 }, c)[0];
@@ -174,8 +178,8 @@ describe('run', () => {
       if (s.draft) step({ type: 'skipDraft' });
     }
     expect(s.releases.length).toBeGreaterThan(1);
-    const save = JSON.parse(JSON.stringify({ version: 2, seed: 9, commands: log }));
-    expect(JSON.stringify(replay(save, c))).toBe(JSON.stringify(s));
+    const save = JSON.parse(JSON.stringify({ version: 3, seed: 9, options: defaultOptions(c), commands: log }));
+    expect(JSON.stringify(replay(save, base))).toBe(JSON.stringify(s));
   });
 });
 

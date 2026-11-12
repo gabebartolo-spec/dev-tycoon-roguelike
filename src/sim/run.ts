@@ -4,6 +4,7 @@ import {
   bossOf, eraOf, generateMarket, lastWeek, platformMul, quarterOf, rivalById, rivalsReleasing, targetFor, thresholdFor,
   type Market,
 } from './market';
+import { defaultOptions, runContent, type RunOptions } from './meta';
 import { mergeContributions, resolve, type Board, type Contribution, type Totals } from './resolver';
 
 export interface Project {
@@ -44,6 +45,7 @@ export type LedgerTag = 'salary' | 'rent' | 'severance' | 'sales' | 'events';
 
 export interface RunState {
   seed: number;
+  options: RunOptions; // meta choices fixed at run start (studio, Crunch Level, unlocks owned)
   rngStep: number; // seeded draws taken so far; draw n has its own stream, so state stays plain JSON
   week: number;
   cash: number;
@@ -156,7 +158,8 @@ function startQuarter(s0: RunState, q: number, content: ContentPack): [RunState,
   return [s, events];
 }
 
-export function newRun(seed: number, content: ContentPack): RunState {
+/** `content` must already be the run's pack (runContent); `options` is recorded for the save and reputation. */
+export function newRun(seed: number, content: ContentPack, options: RunOptions = defaultOptions(content)): RunState {
   let rng = prand.xoroshiro128plus(seed);
   const draw = (max: number) => { const [v, next] = prand.uniformIntDistribution(0, max, rng); rng = next; return v; };
   const pool = content.workers.map((w) => w.id);
@@ -165,7 +168,7 @@ export function newRun(seed: number, content: ContentPack): RunState {
   const board: Board = Object.fromEntries(content.departments.map((d) => [d, null]));
   const market = generateMarket(seed, content);
   const s: RunState = {
-    seed, rngStep: 0, week: 1, cash: content.startingCash, roster, board, market,
+    seed, options, rngStep: 0, week: 1, cash: content.startingCash, roster, board, market,
     trendId: market.quarters[0].trendId, demand: { ...market.quarters[0].demand }, share: 1,
     expectation: content.review.expectation,
     rivalGenres: Object.fromEntries(market.rivals.map((id) => [id, rivalById(id, content).genre])),
@@ -472,10 +475,12 @@ export function apply(s: RunState, cmd: Command, content: ContentPack): [RunStat
 }
 
 /** Mid-run save: the seed and the command log. Loading replays it, so a save is bit-for-bit the run. */
-export interface Save { version: 2; seed: number; commands: Command[] }
+export interface Save { version: 3; seed: number; options: RunOptions; commands: Command[] }
 
-export function replay(save: Save, content: ContentPack): RunState {
-  return save.commands.reduce<RunState>((s, cmd) => apply(s, cmd, content)[0], newRun(save.seed, content));
+/** Rebuild a run from its save; `base` is the unmodified pack, the save's options rebuild the run's pack. */
+export function replay(save: Save, base: ContentPack): RunState {
+  const content = runContent(base, save.options);
+  return save.commands.reduce<RunState>((s, cmd) => apply(s, cmd, content)[0], newRun(save.seed, content, save.options));
 }
 
 export interface Cause { label: string; amount: number }
