@@ -1,0 +1,22 @@
+{
+  "departments": ["code", "design", "art", "sound"],
+  "startingCash": 10000,
+  "traits": [
+    { "id": "spaghetti_coder", "name": "Spaghetti Coder", "effects": [
+      { "trigger": "always", "stat": "code", "op": "add", "value": 3 },
+      { "trigger": "always", "stat": "bugs", "op": "add", "value": 2 } ] },
+    { "id": "ui_wizard", "name": "UI Wizard", "effects": [
+      { "trigger": "slot:design", "stat": "hype", "op": "mul", "value": 1.5 } ] },
+    { "id": "perfectionist", "name": "Perfectionist", "effects": [
+      { "trigger": "always", "stat": "bugs", "op": "mul", "value": 0.5 } ] }
+  ],
+  "workers": [
+    { "id": "ada", "name": "Ada", "salary": 800, "stats": { "code": 4, "design": 1 }, "traits": ["spaghetti_coder"] },
+    { "id": "mo", "name": "Mo", "salary": 700, "stats": { "design": 3, "hype": 2 }, "traits": ["ui_wizard"] },
+    { "id": "rin", "name": "Rin", "salary": 900, "stats": { "art": 3, "bugs": 1 }, "traits": ["perfectionist"] }
+  ],
+  "trends": [
+    { "id": "cozy", "genre": "Cozy Sim", "effects": [
+      { "trigger": "slot:art", "stat": "hype", "op": "add", "value": 2 } ] }
+  ]
+}
