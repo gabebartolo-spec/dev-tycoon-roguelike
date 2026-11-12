@@ -10,14 +10,15 @@ const base = ContentPack.parse(raw);
 const rich: Meta = { ...emptyMeta(), reputation: 1000 };
 
 describe('meta: a first run with empty meta is the plain game', () => {
-  it('default options only remove unlock-gated workers, genres and departments; every other value is untouched', () => {
+  it('default options only remove unlock-gated workers, genres, departments and events; every other value is untouched', () => {
     const c = runContent(base, defaultOptions(base));
     const gatedW = new Set(base.unlocks.flatMap((u) => u.workers));
     const gatedG = new Set(base.unlocks.flatMap((u) => u.genres));
     const gatedD = new Set(base.unlocks.flatMap((u) => u.departments));
+    const gatedE = new Set(base.unlocks.flatMap((u) => u.events));
     expect(c).toEqual({
       ...base, workers: base.workers.filter((w) => !gatedW.has(w.id)), genres: base.genres.filter((g) => !gatedG.has(g.id)),
-      departments: base.departments.filter((d) => !gatedD.has(d)),
+      departments: base.departments.filter((d) => !gatedD.has(d)), events: base.events.filter((e) => !gatedE.has(e.id)),
     });
     expect(c.departments).toEqual(['code', 'design', 'art', 'audio']);
     expect(c.workers.map((w) => w.id)).not.toContain('gus');

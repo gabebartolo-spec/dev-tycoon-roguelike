@@ -124,6 +124,7 @@ export const Mod = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('rivalSteal'), add: z.number() }),
   z.object({ kind: z.literal('shareMax'), mul: z.number().positive() }),
   z.object({ kind: z.literal('strikes'), add: z.number().int() }),
+  z.object({ kind: z.literal('startWorker'), id: z.string() }),          // this worker is on the starting roster
 ]);
 export type Mod = z.infer<typeof Mod>;
 
@@ -148,6 +149,7 @@ export const UnlockDef = z.object({
   studio: z.string().optional(),
   departments: z.array(Dept).default([]), // board slots added by this unlock
   mods: z.array(Mod).default([]),         // run-start costs that come with it (e.g. upkeep)
+  events: z.array(z.string()).default([]), // events that join the deck
 });
 export type UnlockDef = z.infer<typeof UnlockDef>;
 
@@ -157,6 +159,14 @@ export const ContentPack = z.object({
   support: z.array(SupportDef).default([]),
   rosterSize: z.number().int().positive(),
   startingCash: z.number(),
+  startWorkers: z.array(z.string()).default([]), // fixed starting hires (set by startWorker mods); the rest is drawn
+  /** AI cards: workers with this tag never burn out, leave tech debt, and improve each Era (New Model Drops). */
+  ai: z.object({
+    tag: z.string(),
+    debt: z.number().min(0).max(1), // share of a shipped game's bugs that carries into the next game
+    statPerEra: z.number(),         // + to the card's best stat per Era
+    salaryPerEra: z.number(),       // + weekly salary per Era
+  }).default({ tag: 'ai', debt: 0.3, statPerEra: 1, salaryPerEra: 20 }),
   review: z.object({ expectation: z.number().positive(), bugPenalty: z.number().nonnegative(), min: z.number(), max: z.number() }),
   economy: z.object({
     rentPerWeek: z.number().nonnegative(),
@@ -249,6 +259,7 @@ export const ContentPack = z.object({
   for (const u of c.unlocks) {
     if (u.studio && !studioIds.has(u.studio)) ctx.addIssue({ code: 'custom', message: `unlock ${u.id}: unknown studio ${u.studio}` });
     for (const w of u.workers) if (!c.workers.some((x) => x.id === w)) ctx.addIssue({ code: 'custom', message: `unlock ${u.id}: unknown worker ${w}` });
+    for (const e of u.events) if (!c.events.some((x) => x.id === e)) ctx.addIssue({ code: 'custom', message: `unlock ${u.id}: unknown event ${e}` });
     for (const g of u.genres) if (!genreIds.has(g)) ctx.addIssue({ code: 'custom', message: `unlock ${u.id}: unknown genre ${g}` });
   }
   if (c.unlocks.some((u) => u.studio === c.studios[0].id)) ctx.addIssue({ code: 'custom', message: 'the default studio cannot be locked' });
@@ -257,6 +268,7 @@ export const ContentPack = z.object({
   for (const d of c.departments) if (!CoreDept.safeParse(d).success && !c.support.some((s) => s.dept === d)) ctx.addIssue({ code: 'custom', message: `department ${d} needs a support rule` });
   for (const m of [...c.studios, ...c.crunch, ...c.unlocks].flatMap((x) => x.mods))
     if (m.kind === 'phaseWeeks' && !phaseIds.has(m.phase)) ctx.addIssue({ code: 'custom', message: `mod: bad phase ${m.phase}` });
+    else if (m.kind === 'startWorker' && !c.workers.some((w) => w.id === m.id)) ctx.addIssue({ code: 'custom', message: `mod: unknown worker ${m.id}` });
   if (c.rosterSize > c.economy.rosterMax) ctx.addIssue({ code: 'custom', message: 'rosterSize > rosterMax' });
   if (c.rosterSize > c.workers.length) ctx.addIssue({ code: 'custom', message: 'rosterSize > workers' });
 });

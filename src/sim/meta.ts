@@ -121,6 +121,7 @@ function applyMod(c: ContentPack, m: Mod): ContentPack {
     case 'rivalSteal': return { ...c, market: { ...c.market, rivalSteal: Math.min(1, Math.max(0, c.market.rivalSteal + m.add)) } };
     case 'shareMax': return { ...c, market: { ...c.market, shareMax: Math.max(c.market.shareMin, c.market.shareMax * m.mul) } };
     case 'strikes': return { ...c, economy: { ...c.economy, debtStrikes: Math.max(1, c.economy.debtStrikes + m.add) } };
+    case 'startWorker': return c.startWorkers.includes(m.id) ? c : { ...c, startWorkers: [...c.startWorkers, m.id] };
   }
 }
 
@@ -132,10 +133,12 @@ export function runContent(base: ContentPack, o: RunOptions): ContentPack {
   const lockedWorkers = new Set(base.unlocks.flatMap((u) => u.workers).filter((w) => !owned.some((u) => u.workers.includes(w))));
   const lockedDepts = new Set(base.unlocks.flatMap((u) => u.departments).filter((d) => !owned.some((u) => u.departments.includes(d))));
   const lockedGenres = new Set(base.unlocks.flatMap((u) => u.genres).filter((g) => !owned.some((u) => u.genres.includes(g))));
+  const lockedEvents = new Set(base.unlocks.flatMap((u) => u.events).filter((e) => !owned.some((u) => u.events.includes(e))));
   let c: ContentPack = {
     ...base,
     workers: base.workers.filter((w) => !lockedWorkers.has(w.id)),
     genres: base.genres.filter((g) => !lockedGenres.has(g.id)),
+    events: base.events.filter((e) => !lockedEvents.has(e.id)),
     departments: base.departments.filter((d) => !lockedDepts.has(d)),
   };
   const mods = [...studio.mods, ...owned.flatMap((u) => u.mods), ...base.crunch.slice(0, o.crunch).flatMap((l) => l.mods)];
