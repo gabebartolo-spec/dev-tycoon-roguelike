@@ -5,7 +5,7 @@ import * as THREE from 'three';
  * outline of one fixed pixel width on every object (the "one line width" rule), drawn as an inverted hull pushed
  * out along smoothed normals in clip space so thin legs and big desks get the same line.
  */
-export const INK = { line: '#17120e', paper: '#efe3c8', lineWidthPx: 2.5 };
+export const INK = { line: '#17120e', paper: '#efe3c8', lineWidthPx: 2.5, charLineWidthPx: 1.5 }; // characters: thinner, so chin/collar lines don't band across faces
 export const LIGHT = new THREE.Vector3(0.45, 0.85, 0.35).normalize();
 
 /** Skinning chunks are no-ops unless three compiles the material for a SkinnedMesh (it sets USE_SKINNING). */
