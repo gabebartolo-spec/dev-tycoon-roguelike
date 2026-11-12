@@ -43,7 +43,7 @@ Goal: two seeds should feel like two different markets.
 - [ ] Rival studios: release schedule, steal demand, react to your hits
 - [ ] Event deck (20 events) with choices; Zod schema; seeded draws
 - [ ] Expectation bar (self-relative, shown on the HUD)
-- [ ] Era structure (3 Eras × 4 Quarters) and Era Showcase "bosses" (3 types)
+- [ ] Era structure (3 Eras × 4 Quarters) ending in a Rival Showdown (D-4): 6 rival companies, each with a review target, a preferred genre and a rule twist; win or lose by review score
 - [ ] Fogged market map UI: next Quarter's trend directions
 - [ ] Snowball caps on early-threshold bonuses, with a fixture test
 - Exit: a bot sweep over 1,000 seeds shows win rates spread across seeds (no seed type >90% or <5%); testers rate
@@ -59,7 +59,7 @@ Goal: run 5 plays differently from run 1 because of choices, not just bigger num
 - Exit: tests show unlocks apply only at run start; a new player's first run is identical with an empty meta.
 
 ## M5: Content, juice and the studio view
-- [ ] Content to 40 workers, 60 traits, 10 genres, 25 topics, 40 events, 6 Showcases
+- [ ] Content to 40 workers, 60 traits, 10 genres, 25 topics, 40 events, 6 rival companies
 - [ ] Framer Motion: card lift, slot snap, floating deltas, review score reveal with readable steps
 - [ ] `<StudioView>` (react-three-fiber): low-poly desks; placed workers sit, bug swarms grow, hype lighting; driven
   only by sim events; `frameloop="demand"`
@@ -99,3 +99,13 @@ Goal: run 5 plays differently from run 1 because of choices, not just bigger num
 | Opaque scoring (the genre's main complaint) | Previews + contributor breakdown are M1 requirements, not polish |
 | Meta power trivialises the game | D-1 (options with tradeoffs only); unlocks apply at run start only; Crunch Levels |
 | The 3D view costs too much | It arrives in M5, driven by events, and can be turned off |
+
+## M10 (stretch): PvP mode
+Runs are deterministic (`seed + commands`), so PvP can start asynchronous and serverless before any netcode.
+- [ ] **Seed duel (async):** both players get the same seed; each run's command log is shared as a code or file;
+  the sim replays both and compares review scores per project. Cheating is checked by replaying, not trusted.
+- [ ] **Ghost rival:** your friend's replayed run becomes the Rival Showdown boss (D-4) in your run.
+- [ ] **Weekly seed leaderboard:** a hosted list of command logs, each verified by a headless replay.
+- [ ] **Live head-to-head (later):** both studios in one shared market; phases resolve when both lock in, and one
+  player's hit release drains demand from the other. Needs a small authoritative server running the same `src/sim`.
+- Exit: two machines replay the same duel to identical scores; a tampered log is rejected.
