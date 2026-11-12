@@ -1,6 +1,6 @@
 import { DndContext, KeyboardSensor, PointerSensor, useDroppable, useSensor, useSensors, type DragEndEvent, type DragOverEvent } from '@dnd-kit/core';
 import { AnimatePresence, motion } from 'motion/react';
-import { useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { content } from '../data/load';
 import type { Dept } from '../data/schemas';
 import { phaseTotals, preview, weeklyCosts } from '../sim/run';
@@ -25,8 +25,14 @@ function Slot({ dept, workerId, ghost, onActivate }: { dept: Dept; workerId: str
   );
 }
 
+const StudioView = lazy(() => import('./StudioView')); // three.js loads only when the view is on
+const VIEW_KEY = 'dtr.studioView';
+const readView = () => { try { return localStorage.getItem(VIEW_KEY) !== 'off'; } catch { return true; } };
+
 export function RunScreen() {
   const { state, dispatch, undo, undoMarks } = useGame();
+  const [view, setView] = useState(readView);
+  const toggleView = () => { const v = !view; setView(v); try { localStorage.setItem(VIEW_KEY, v ? 'on' : 'off'); } catch { /* storage off */ } };
   const [selected, setSelected] = useState<string | null>(null);
   const [hover, setHover] = useState<{ dept: Dept; workerId: string } | null>(null);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }), useSensor(KeyboardSensor));
@@ -85,6 +91,8 @@ export function RunScreen() {
             </motion.span>))}</AnimatePresence></div>
       </section>
 
+      {view && <Suspense fallback={<div className="studio-view" />}><StudioView /></Suspense>}
+
       <section className="board" aria-label="Project board" style={{ "--slots": content.departments.length } as React.CSSProperties}>
         {content.departments.map((d) => (
           <Slot key={d} dept={d} workerId={state.board[d] ?? null} ghost={ghostFor(d)} onActivate={() => placeSelected(d)} />
@@ -98,6 +106,7 @@ export function RunScreen() {
       </section>
 
       <footer className="controls">
+        <button onClick={toggleView} aria-pressed={view}>Studio view {view ? 'on' : 'off'}</button>
         <button onClick={undo} disabled={!undoMarks.length}>Undo</button>
         <button className="primary" onClick={() => dispatch({ type: 'endPhase' })}>
           End {phase.name} → Q {signed(now.quality)}, H {signed(now.hype)}, B {signed(now.bugs)}
