@@ -93,3 +93,4 @@ options for the next attempt.
   fixed number of weeks.
 - **D-4 Bosses = rival game companies.** Each Era ends in a Rival Showdown judged by review score: your release
   versus the rival's.
+- **D-5 Spend (2026-11-13).** Written yes from the director: spend Tripo, Suno and ElevenLabs credits as needed for M5 art and audio. Credits are finite, so check the balance before each job and never overdraw.
