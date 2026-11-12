@@ -41,15 +41,19 @@ Goal: a full run from first project to bankruptcy or win, playable in one sittin
 
 ## M3: Market dungeon
 Goal: two seeds should feel like two different markets.
-- [ ] Market generator: genres with demand curves, topic modifiers, a platform lifecycle per Era
-- [ ] Rival studios: release schedule, steal demand, react to your hits
-- [ ] Event deck (20 events) with choices; Zod schema; seeded draws
-- [ ] Expectation bar (self-relative, shown on the HUD)
-- [ ] Era structure (3 Eras × 4 Quarters) ending in a Rival Showdown (D-4): 6 rival companies, each with a review target, a preferred genre and a rule twist; win or lose by review score
-- [ ] Fogged market map UI: next Quarter's trend directions
-- [ ] Snowball caps on early-threshold bonuses, with a fixture test
+- [x] Market generator: genres with demand curves, topic modifiers, a platform lifecycle per Era
+- [x] Rival studios: release schedule, steal demand, react to your hits
+- [x] Event deck (20 events) with choices; Zod schema; seeded draws
+- [x] Expectation bar (self-relative, shown on the HUD)
+- [x] Era structure (3 Eras × 4 Quarters) ending in a Rival Showdown (D-4): 6 rival companies, each with a review target, a preferred genre and a rule twist; win or lose by review score
+- [x] Fogged market map UI: next Quarter's trend directions
+- [x] Snowball caps on early-threshold bonuses, with a fixture test
 - Exit: a bot sweep over 1,000 seeds shows win rates spread across seeds (no seed type >90% or <5%); testers rate
   "the market felt different" ≥4/5.
+- Done: 1,000-seed sweep (`SWEEP=1000 npx vitest run sweep`, greedy bot) wins 41.1% overall, every boss and platform
+  group 36.6–45.2%; sales.basePerWeek tuned 5000 → 3000 to get there. Calendar now follows DESIGN §3: 12-week
+  Quarters with rising Payroll thresholds, 3 Eras, win at week 145 (replaces M2's 4-weekly payroll, week-104 win).
+  Tester rating still to collect.
 
 ## M4: Meta-progression
 Goal: run 5 plays differently from run 1 because of choices, not just bigger numbers.

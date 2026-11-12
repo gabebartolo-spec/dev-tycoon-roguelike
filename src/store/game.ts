@@ -15,17 +15,17 @@ interface GameStore {
   newGame: (seed?: number) => void;
 }
 
-const SAVE_KEY = 'dtr.save.v1';
+const SAVE_KEY = 'dtr.save.v2';
 const freshSeed = () => Math.floor(Math.random() * 2 ** 31); // UI-only: picks a seed, the sim itself never calls random
 
 function persist(seed: number, log: Command[]) {
-  try { localStorage.setItem(SAVE_KEY, JSON.stringify({ version: 1, seed, commands: log } satisfies Save)); } catch { /* storage off: run still plays */ }
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify({ version: 2, seed, commands: log } satisfies Save)); } catch { /* storage off: run still plays */ }
 }
 
 function load(): { state: RunState; log: Command[] } {
   try {
     const save = JSON.parse(localStorage.getItem(SAVE_KEY) ?? 'null') as Save | null;
-    if (save?.version === 1) return { state: replay(save, content), log: save.commands };
+    if (save?.version === 2) return { state: replay(save, content), log: save.commands };
   } catch { /* corrupt or old save: start fresh */ }
   return { state: newRun(freshSeed(), content), log: [] };
 }
