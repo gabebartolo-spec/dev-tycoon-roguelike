@@ -16,7 +16,10 @@ React 18 + TypeScript (Vite), Zustand, Zod-validated JSON content, Vitest, react
     npm test
     npm run dev
 
-## Roadmap
+## Docs
+- [Design](docs/DESIGN.md) · [Roadmap](docs/ROADMAP.md) · [Research](docs/research/)
+
+## Roadmap (summary)
 | Phase | Goal |
 |---|---|
 | M1 | Placement MVP: 4 slots, drag and drop, hover preview of hype and bugs |
