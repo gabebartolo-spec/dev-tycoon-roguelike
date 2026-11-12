@@ -42,7 +42,7 @@
     { "id": "open_source", "name": "Open-Source Engine", "text": "No licence fee (rent -$200/wk), but code counts 10% less and Prototype takes a week longer.", "mods": [ { "kind": "rent", "add": -200 }, { "kind": "deptWeight", "dept": "code", "mul": 0.9 }, { "kind": "phaseWeeks", "phase": "prototype", "add": 1 } ] },
     { "id": "publisher_deal", "name": "Publisher Deal", "text": "+$30k up front, but the publisher takes 15% of every sale.", "mods": [ { "kind": "cash", "add": 30000 }, { "kind": "sales", "mul": 0.85 } ] },
     { "id": "co_op", "name": "Worker Co-op", "text": "Salaries 10% lower, but the team burns out twice as fast and you start one worker short.", "mods": [ { "kind": "salary", "mul": 0.9 }, { "kind": "burnout", "mul": 2 }, { "kind": "rosterSize", "add": -1 } ] },
-    { "id": "weekend_project", "name": "Weekend Project", "text": "You start with a Coding Agent on the team and $10k less cash; Prototype takes a week less.", "mods": [ { "kind": "startWorker", "id": "coding_agent" }, { "kind": "cash", "add": -10000 }, { "kind": "phaseWeeks", "phase": "prototype", "add": -1 } ] },
+    { "id": "weekend_project", "name": "Weekend Project", "text": "You start with a Coding Agent on the team; Prototype takes a week less.", "mods": [ { "kind": "startWorker", "id": "coding_agent" }, { "kind": "phaseWeeks", "phase": "prototype", "add": -1 } ] },
     { "id": "bedroom", "name": "Bedroom", "text": "You start alone, with The Auteur and $20k less cash. No rent while you work alone; hire anyone and you pay full rent.", "mods": [ { "kind": "startWorker", "id": "auteur" }, { "kind": "rentFreeUpTo", "value": 1 }, { "kind": "cash", "add": -20000 }, { "kind": "rosterSize", "add": -5 } ] }
   ],
   "unlocks": [
