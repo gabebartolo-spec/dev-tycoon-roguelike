@@ -124,7 +124,8 @@ export const Mod = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('rivalSteal'), add: z.number() }),
   z.object({ kind: z.literal('shareMax'), mul: z.number().positive() }),
   z.object({ kind: z.literal('strikes'), add: z.number().int() }),
-  z.object({ kind: z.literal('startWorker'), id: z.string() }),          // this worker is on the starting roster
+  z.object({ kind: z.literal('startWorker'), id: z.string() }),
+  z.object({ kind: z.literal('rentFreeUpTo'), value: z.number().int().nonnegative() }), // rent 0 while roster <= value          // this worker is on the starting roster
 ]);
 export type Mod = z.infer<typeof Mod>;
 
@@ -166,10 +167,18 @@ export const ContentPack = z.object({
     debt: z.number().min(0).max(1), // share of a shipped game's bugs that carries into the next game
     statPerEra: z.number(),         // + to the card's best stat per Era
     salaryPerEra: z.number(),       // + weekly salary per Era
-  }).default({ tag: 'ai', debt: 0.3, statPerEra: 1, salaryPerEra: 20 }),
+  }).default({ tag: 'ai', debt: 0.15, statPerEra: 1, salaryPerEra: 20 }),
+  /** Solo cards: workers with this tag can sit on several desks (each extra desk lengthens the phase); a game made
+   *  only by solo cards sells with a slower decay (Long Tail). */
+  solo: z.object({
+    tag: z.string(),
+    weeksPerHat: z.number().int().nonnegative(), // + weeks to a phase per extra desk one solo card holds
+    decay: z.number().min(0).max(1),             // weekly sales factor for an all-solo game (base is sales.decay)
+  }).default({ tag: 'solo', weeksPerHat: 1, decay: 0.92 }),
   review: z.object({ expectation: z.number().positive(), bugPenalty: z.number().nonnegative(), min: z.number(), max: z.number() }),
   economy: z.object({
     rentPerWeek: z.number().nonnegative(),
+    rentFreeUpTo: z.number().int().nonnegative().default(0), // no rent while the roster is this small (Bedroom)
     debtStrikes: z.number().int().positive(),       // D-2: the Nth strike ends the run
     severanceWeeks: z.number().nonnegative(),
     rosterMax: z.number().int().positive(),

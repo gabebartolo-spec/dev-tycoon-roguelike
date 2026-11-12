@@ -3,7 +3,7 @@ import { AnimatePresence, motion } from 'motion/react';
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { content } from '../data/load';
 import type { Dept } from '../data/schemas';
-import { phaseTotals, preview, weeklyCosts } from '../sim/run';
+import { phaseTotals, phaseWeeks, preview, weeklyCosts } from '../sim/run';
 import { useGame } from '../store/game';
 import { money, signed } from './format';
 import { Delta, WorkerCard } from './widgets';
@@ -82,7 +82,7 @@ export function RunScreen() {
   return (
     <DndContext sensors={sensors} onDragOver={onDragOver} onDragEnd={onDragEnd} onDragCancel={() => setHover(null)}>
       <section className="totals">
-        <div><b>{genre.name}</b> · {phase.name} ({project.phase + 1}/{content.phases.length}, {phase.weeks} wk, −{money(weeklyCosts(state, content) * phase.weeks)})</div>
+        <div><b>{genre.name}</b> · {phase.name} ({project.phase + 1}/{content.phases.length}, {phaseWeeks(state, content)} wk, −{money(weeklyCosts(state, content) * phaseWeeks(state, content))})</div>
         <div>Project so far: <Delta q={project.quality} h={project.hype} b={project.bugs} /></div>
         <div className="float-host">This phase: <Delta q={now.quality} h={now.hype} b={now.bugs} />
           <AnimatePresence>{floats.map((f) => (
