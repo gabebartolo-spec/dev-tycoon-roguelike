@@ -36,7 +36,8 @@ const legs: [number, number][] = [[-0.72, -0.38], [0.72, -0.38], [-0.72, 0.38], 
 /**
  * Seated-character fit, measured on the posed models in Blender: wrist 0.385 up and 0.23 forward of the hips, seat
  * underside 0.175, head top ~0.76. Scale 2.16 puts the wrists just above the desk top (0.79) and the seat on the
- * chair top (0.38); turned to face -z, the fingertips stop short of the monitor.
+ * chair top (0.38). Seated behind the desk facing +z (the camera, the model's native facing): the fingertips stop
+ * short of the monitor, and from the camera's 34° elevation the face clears the monitor top.
  */
 const CHAR_SCALE = 2.16;
 const SEAT_TOP = 0.38;
@@ -46,13 +47,13 @@ function Desk({ x, dept, staffed, cast, phase }: { x: number; dept: Dept; staffe
     <group position={[x, 0, 0]}>
       <Inked geometry={box(1.6, 0.08, 0.9)} color="#c98a4b" position={[0, 0.75, 0]} />
       {legs.map(([lx, lz], i) => <Inked key={i} geometry={box(0.07, 0.74, 0.07)} color="#7a4a2a" position={[lx, 0.37, lz]} />)}
-      <Inked geometry={box(0.8, 0.5, 0.05)} color={staffed ? DEPT_COLOR[dept] : '#3b3340'} glow={staffed} position={[0, 1.1, -0.25]} />
-      <Inked geometry={box(0.1, 0.12, 0.05)} color="#3b3340" position={[0, 0.82, -0.25]} />
+      <Inked geometry={box(0.8, 0.5, 0.05)} color={staffed ? DEPT_COLOR[dept] : '#3b3340'} glow={staffed} position={[0, 1.1, 0.25]} />
+      <Inked geometry={box(0.1, 0.12, 0.05)} color="#3b3340" position={[0, 0.82, 0.25]} />
       <Inked geometry={box(1.5, 0.02, 0.12)} color={DEPT_COLOR[dept]} outline={false} position={[0, 0.02, 0.9]} />
       {staffed && (
-        <group position={[0, 0, 0.75]}>
+        <group position={[0, 0, -0.75]}>
           <Inked geometry={box(0.5, 0.06, 0.5)} color="#5a4a5e" position={[0, SEAT_TOP - 0.03, 0]} />
-          {cast && <Suspense fallback={null}><Character url={castUrl(cast)} phase={phase} scale={CHAR_SCALE} rotation={[0, Math.PI, 0]} /></Suspense>}
+          {cast && <Suspense fallback={null}><Character url={castUrl(cast)} phase={phase} scale={CHAR_SCALE} /></Suspense>}
         </group>
       )}
     </group>
@@ -64,7 +65,7 @@ function Fit({ width }: { width: number }) {
   const { camera, size, invalidate } = useThree();
   useLayoutEffect(() => {
     camera.zoom = Math.min(size.width / (width + 2.6), size.height / 3.1);
-    camera.lookAt(0, 0.75, 0.5);
+    camera.lookAt(0, 0.75, 0.3); // a little back from the desks: room above for heads
     camera.updateProjectionMatrix();
     setInkResolution(size.width, size.height);
     invalidate();
