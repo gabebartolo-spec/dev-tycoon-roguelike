@@ -65,5 +65,5 @@ button:disabled { opacity: 0.4; cursor: default; }
 .hub .bring { display: block; margin: 2px 0; }
 .slot-head .support-rule { text-transform: none; }
 .float-host { position: relative; }
-.float-delta { position: absolute; left: 80px; top: 0; pointer-events: none; font-weight: 600; white-space: nowrap; }
+.float-delta { position: absolute; left: calc(100% + 14px); top: 0; pointer-events: none; font-weight: 600; white-space: nowrap; }
 .review-step { display: block; }

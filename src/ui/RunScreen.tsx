@@ -80,7 +80,7 @@ export function RunScreen() {
         <div>Project so far: <Delta q={project.quality} h={project.hype} b={project.bugs} /></div>
         <div className="float-host">This phase: <Delta q={now.quality} h={now.hype} b={now.bugs} />
           <AnimatePresence>{floats.map((f) => (
-            <motion.span key={f.id} className="float-delta" aria-hidden initial={{ opacity: 0, y: 0 }} animate={{ opacity: 1, y: -26 }} exit={{ opacity: 0, y: -40 }} transition={{ duration: 0.6 }}>
+            <motion.span key={f.id} className="float-delta" aria-hidden initial={{ opacity: 1, y: 6 }} animate={{ opacity: 0, y: -10 }} transition={{ duration: 1.1, ease: "easeIn" }}>
               <Delta q={f.q} h={f.h} b={f.b} />
             </motion.span>))}</AnimatePresence></div>
       </section>

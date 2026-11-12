@@ -12,7 +12,7 @@ function Score({ value, delay }: { value: number; delay: number }) {
   const n = useMotionValue(0);
   const text = useTransform(n, (v) => v.toFixed(0));
   useEffect(() => { const c = animate(n, value, { delay, duration: 0.8, ease: 'easeOut' }); return () => c.stop(); }, [n, value, delay]);
-  return <motion.span className="score">{text}</motion.span>;
+  return <motion.span className="score" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay, duration: 0.2 }}><motion.span>{text}</motion.span>/10</motion.span>;
 }
 
 export function Review() {
@@ -28,7 +28,7 @@ export function Review() {
   return (
     <motion.section key={state.releases.length} className="review" aria-live="polite" initial="hidden" animate="shown"
       transition={{ staggerChildren: STEP_S }}>
-      <h2>Last release: {content.topics.find((t) => t.id === r.topicId)?.name} {genre.name}, review <Score value={r.review} delay={STEP_S * 3} />/10</h2>
+      <h2>Last release: {content.topics.find((t) => t.id === r.topicId)?.name} {genre.name}, review <Score value={r.review} delay={STEP_S * 3} /></h2>
       {lines.map((l, i) => <motion.span key={i} className="review-step" variants={step}>{l}</motion.span>)}
       <motion.p className="muted" variants={step}>Cost {money(r.cost)} · sales so far {money(r.revenue)}</motion.p>
       <motion.div className="why" variants={step}>
