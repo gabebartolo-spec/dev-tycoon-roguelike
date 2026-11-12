@@ -7,6 +7,7 @@ import { money, signed } from './ui/format';
 import { Between } from './ui/Between';
 import { Hud } from './ui/Hud';
 import { PostMortem } from './ui/PostMortem';
+import { Hub } from './ui/Hub';
 
 const ARROW = { up: '▲', flat: '▬', down: '▼' } as const;
 
@@ -106,15 +107,15 @@ function Review() {
 }
 
 export default function App() {
-  const { state, error } = useGame();
+  const { state, error, hub } = useGame();
   const over = state.dead || state.won;
   return (
     <main>
-      <h1>Dev Tycoon Roguelike <span className="muted">M3 market dungeon · seed {state.seed}</span></h1>
-      <Hud />
+      <h1>Dev Tycoon Roguelike <span className="muted">M4 meta-progression · seed {state.seed} · {content.studios.find((s) => s.id === state.options.studio)?.name} · Crunch {state.options.crunch}</span></h1>
+      {!hub && <Hud />}
       {error && <div className="error" role="alert">{error}</div>}
-      {!over && <EventCard />}
-      {over ? <PostMortem /> : state.project ? <RunScreen /> : (<><Showdowns /><Review /><MarketMap /><Between /><PitchPicker /></>)}
+      {!hub && !over && <EventCard />}
+      {hub ? <Hub /> : over ? <PostMortem /> : state.project ? <RunScreen /> : (<><Showdowns /><Review /><MarketMap /><Between /><PitchPicker /></>)}
     </main>
   );
 }

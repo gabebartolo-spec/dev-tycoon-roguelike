@@ -54,3 +54,11 @@ button:disabled { opacity: 0.4; cursor: default; }
 .market, .event { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin: 10px 0; }
 .event { border-color: var(--accent); }
 .market .cell { padding: 4px 0; }
+.hub { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin: 10px 0; }
+.hub .genres { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
+.hub .unlock { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
+.hub .unlock.owned { border-color: var(--accent); }
+.hub .genre.picked { outline: 2px solid var(--accent); }
+.hub select { font: inherit; padding: 4px; }
+.rep { margin: 10px 0; }
+.hub .genre span { text-transform: none; text-align: left; }

@@ -102,6 +102,43 @@ export const EventDef = z.object({
 });
 export type EventDef = z.infer<typeof EventDef>;
 
+/** A run-start change to the content pack (starting studios and Crunch Levels). Applied once, in runContent(). */
+export const Mod = z.discriminatedUnion('kind', [
+  z.object({ kind: z.literal('cash'), add: z.number() }),                 // starting cash
+  z.object({ kind: z.literal('rent'), add: z.number() }),                 // per week
+  z.object({ kind: z.literal('salary'), mul: z.number().positive() }),
+  z.object({ kind: z.literal('deptWeight'), dept: Dept, mul: z.number().positive() }), // every genre's weight for dept
+  z.object({ kind: z.literal('phaseWeeks'), phase: z.string(), add: z.number().int() }),
+  z.object({ kind: z.literal('threshold'), mul: z.number().nonnegative(), add: z.number().default(0) }),
+  z.object({ kind: z.literal('expectation'), add: z.number() }),
+  z.object({ kind: z.literal('rivalTarget'), add: z.number() }),
+  z.object({ kind: z.literal('eventChance'), add: z.number() }),
+  z.object({ kind: z.literal('rosterSize'), add: z.number().int() }),
+  z.object({ kind: z.literal('burnout'), mul: z.number().positive() }),  // burnout gained per placed week
+  z.object({ kind: z.literal('sales'), mul: z.number().positive() }),    // base weekly sales
+  z.object({ kind: z.literal('decay'), mul: z.number().positive() }),    // sales decay factor (lower = faster)
+  z.object({ kind: z.literal('pitchOptions'), add: z.number().int() }),
+  z.object({ kind: z.literal('rivalSteal'), add: z.number() }),
+  z.object({ kind: z.literal('shareMax'), mul: z.number().positive() }),
+  z.object({ kind: z.literal('strikes'), add: z.number().int() }),
+]);
+export type Mod = z.infer<typeof Mod>;
+
+export const StudioDef = z.object({ id: z.string(), name: z.string(), text: z.string(), mods: z.array(Mod) });
+export type StudioDef = z.infer<typeof StudioDef>;
+
+/** Studio Hub unlock bought with reputation. Workers/genres it grants are out of the run until it is bought. */
+export const UnlockDef = z.object({
+  id: z.string(),
+  name: z.string(),
+  text: z.string(),
+  cost: z.number().int().nonnegative(),
+  workers: z.array(z.string()).default([]),
+  genres: z.array(z.string()).default([]),
+  studio: z.string().optional(),
+});
+export type UnlockDef = z.infer<typeof UnlockDef>;
+
 export const ContentPack = z.object({
   departments: z.array(Dept).min(1),
   phases: z.array(PhaseDef).min(1),
@@ -154,6 +191,18 @@ export const ContentPack = z.object({
     pitchOptions: z.number().int().positive(),
     eventChance: z.number().min(0).max(1),         // chance of an event at each new Quarter
   }),
+  meta: z.object({
+    valuationPerRep: z.number().positive(), // reputation = valuation / this, plus milestones
+    salesWeeksValued: z.number().nonnegative(), // valuation = cash + this x weekly sales income
+    repPerHit: z.number().nonnegative(),
+    repPerShowdown: z.number().nonnegative(),
+    repPerQuarter: z.number().nonnegative(),
+    repForWin: z.number().nonnegative(),
+    crunchRepBonus: z.number().nonnegative(), // reputation x (1 + level x this)
+  }),
+  studios: z.array(StudioDef).min(1),  // first one is the default, always available
+  unlocks: z.array(UnlockDef),
+  crunch: z.array(z.object({ text: z.string(), mods: z.array(Mod).min(1) })), // level N applies entries 1..N
   topics: z.array(TopicDef).min(1),
   platforms: z.array(PlatformDef).min(1),
   rivals: z.array(RivalDef).min(1),
@@ -183,6 +232,15 @@ export const ContentPack = z.object({
   for (const t of c.trends)
     for (const g of Object.keys(t.demand))
       if (!c.genres.some((x) => x.id === g)) ctx.addIssue({ code: 'custom', message: `trend ${t.id}: unknown genre ${g}` });
+  const studioIds = new Set(c.studios.map((s) => s.id));
+  for (const u of c.unlocks) {
+    if (u.studio && !studioIds.has(u.studio)) ctx.addIssue({ code: 'custom', message: `unlock ${u.id}: unknown studio ${u.studio}` });
+    for (const w of u.workers) if (!c.workers.some((x) => x.id === w)) ctx.addIssue({ code: 'custom', message: `unlock ${u.id}: unknown worker ${w}` });
+    for (const g of u.genres) if (!genreIds.has(g)) ctx.addIssue({ code: 'custom', message: `unlock ${u.id}: unknown genre ${g}` });
+  }
+  if (c.unlocks.some((u) => u.studio === c.studios[0].id)) ctx.addIssue({ code: 'custom', message: 'the default studio cannot be locked' });
+  for (const m of [...c.studios, ...c.crunch].flatMap((x) => x.mods))
+    if (m.kind === 'phaseWeeks' && !phaseIds.has(m.phase)) ctx.addIssue({ code: 'custom', message: `mod: bad phase ${m.phase}` });
   if (c.rosterSize > c.economy.rosterMax) ctx.addIssue({ code: 'custom', message: 'rosterSize > rosterMax' });
   if (c.rosterSize > c.workers.length) ctx.addIssue({ code: 'custom', message: 'rosterSize > workers' });
 });

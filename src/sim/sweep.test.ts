@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { content } from '../data/load';
+import { content } from '../data/load'; // the default run pack (locked content removed)
 import { playBot } from './bot';
 
 const SEEDS = Number(import.meta.env.SWEEP ?? 0); // vitest copies process.env into import.meta.env
