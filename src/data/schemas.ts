@@ -55,6 +55,53 @@ export type TrendDef = z.infer<typeof TrendDef>;
 export const PhaseDef = z.object({ id: z.string(), name: z.string(), weeks: z.number().int().positive() });
 export type PhaseDef = z.infer<typeof PhaseDef>;
 
+export const TopicDef = z.object({
+  id: z.string(),
+  name: z.string(),
+  fit: z.record(z.string(), z.number().positive()).default({}), // demand multiplier per genre id; missing = 1
+});
+export type TopicDef = z.infer<typeof TopicDef>;
+
+/** A platform's demand multiplier for each Quarter of the Era it is drawn for (launch, peak, decline...). */
+export const PlatformDef = z.object({ id: z.string(), name: z.string(), curve: z.array(z.number().positive()).min(1) });
+export type PlatformDef = z.infer<typeof PlatformDef>;
+
+/** Rule twist for a Rival Showdown: changes how YOUR release is scored against the rival's target. */
+export const TwistDef = z.object({
+  text: z.string(),
+  bugPenaltyMul: z.number().nonnegative().default(1),
+  qualityMul: z.number().nonnegative().default(1),
+  hypeToReview: z.number().default(0), // review += hype x this
+});
+
+export const RivalDef = z.object({
+  id: z.string(),
+  name: z.string(),
+  genre: z.string(),                       // preferred genre: where its releases steal demand
+  targets: z.array(z.number()).min(1),     // showdown review target per Era (last value repeats)
+  twist: TwistDef,
+});
+export type RivalDef = z.infer<typeof RivalDef>;
+
+export const EventEffect = z.discriminatedUnion('kind', [
+  z.object({ kind: z.literal('cash'), value: z.number() }),
+  z.object({ kind: z.literal('burnoutAll'), value: z.number() }),
+  z.object({ kind: z.literal('expectation'), value: z.number() }),
+  z.object({ kind: z.literal('hype'), value: z.number() }),       // to the running (or next) project
+  z.object({ kind: z.literal('bugs'), value: z.number() }),
+  z.object({ kind: z.literal('demand'), value: z.number().positive(), genre: z.string().optional() }), // x this Quarter's demand
+  z.object({ kind: z.literal('share'), value: z.number().positive() }), // x market share (capped)
+]);
+export type EventEffect = z.infer<typeof EventEffect>;
+
+export const EventDef = z.object({
+  id: z.string(),
+  title: z.string(),
+  text: z.string(),
+  choices: z.array(z.object({ label: z.string(), effects: z.array(EventEffect) })).min(1).max(3),
+});
+export type EventDef = z.infer<typeof EventDef>;
+
 export const ContentPack = z.object({
   departments: z.array(Dept).min(1),
   phases: z.array(PhaseDef).min(1),
@@ -63,10 +110,7 @@ export const ContentPack = z.object({
   review: z.object({ expectation: z.number().positive(), bugPenalty: z.number().nonnegative(), min: z.number(), max: z.number() }),
   economy: z.object({
     rentPerWeek: z.number().nonnegative(),
-    payrollEveryWeeks: z.number().int().positive(), // a Payroll Day falls on every multiple of this week
-    debtStrikes: z.number().int().positive(),       // D-2: the Nth missed Payroll Day ends the run
-    winWeek: z.number().int().positive(),           // survive to this week to win
-    weeksPerQuarter: z.number().int().positive(),
+    debtStrikes: z.number().int().positive(),       // D-2: the Nth strike ends the run
     severanceWeeks: z.number().nonnegative(),
     rosterMax: z.number().int().positive(),
     draftSize: z.number().int().positive(),
@@ -86,11 +130,45 @@ export const ContentPack = z.object({
     breakthroughQuality: z.number(),
     breakdownBugs: z.number(),
   }),
+  calendar: z.object({
+    weeksPerQuarter: z.number().int().positive(),
+    quartersPerEra: z.number().int().positive(),
+    eras: z.number().int().positive(),
+    payrollThresholds: z.array(z.number()).min(1), // cash needed on each Quarter's Payroll Day (last value repeats)
+  }),
+  market: z.object({
+    demandStart: z.tuple([z.number().positive(), z.number().positive()]), // per-genre start range
+    demandStep: z.number().nonnegative(),  // max random-walk move per Quarter
+    demandMin: z.number().positive(),
+    demandMax: z.number().positive(),
+    rivalsPerRun: z.number().int().positive(),
+    rivalEveryQuarters: z.number().int().positive(), // each rival releases this often
+    rivalSteal: z.number().min(0).max(1),          // a rival release cuts its genre's demand by this, that Quarter
+    hitReview: z.number(),                         // a review at or above this is a hit
+    expectationRise: z.number().nonnegative(),     // expectation bar rise after a hit
+    expectationMax: z.number().positive(),
+    shareWin: z.number().positive(),               // x market share for beating a rival
+    shareLose: z.number().positive(),
+    shareMin: z.number().positive(),
+    shareMax: z.number().positive(),               // snowball cap
+    pitchOptions: z.number().int().positive(),
+    eventChance: z.number().min(0).max(1),         // chance of an event at each new Quarter
+  }),
+  topics: z.array(TopicDef).min(1),
+  platforms: z.array(PlatformDef).min(1),
+  rivals: z.array(RivalDef).min(1),
+  events: z.array(EventDef).min(1),
   traits: z.array(TraitDef),
   workers: z.array(WorkerDef),
   genres: z.array(GenreDef).min(1),
   trends: z.array(TrendDef).min(1),
 }).superRefine((c, ctx) => {
+  const genreIds = new Set(c.genres.map((g) => g.id));
+  for (const r of c.rivals) if (!genreIds.has(r.genre)) ctx.addIssue({ code: 'custom', message: `rival ${r.id}: unknown genre ${r.genre}` });
+  for (const t of c.topics) for (const g of Object.keys(t.fit)) if (!genreIds.has(g)) ctx.addIssue({ code: 'custom', message: `topic ${t.id}: unknown genre ${g}` });
+  for (const e of c.events) for (const ch of e.choices) for (const f of ch.effects)
+    if (f.kind === 'demand' && f.genre && !genreIds.has(f.genre)) ctx.addIssue({ code: 'custom', message: `event ${e.id}: unknown genre ${f.genre}` });
+  if (c.market.rivalsPerRun > c.rivals.length) ctx.addIssue({ code: 'custom', message: 'rivalsPerRun > rivals' });
   const traitIds = new Set(c.traits.map((t) => t.id));
   for (const w of c.workers)
     for (const t of w.traits)

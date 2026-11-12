@@ -7,8 +7,8 @@
   ],
   "rosterSize": 6,
   "startingCash": 40000,
-  "economy": { "rentPerWeek": 500, "payrollEveryWeeks": 4, "debtStrikes": 3, "winWeek": 104, "weeksPerQuarter": 13, "severanceWeeks": 2, "rosterMax": 8, "draftSize": 3 },
-  "sales": { "basePerWeek": 5000, "hypeScale": 20, "reviewExp": 2, "decay": 0.85, "minWeekly": 50 },
+  "economy": { "rentPerWeek": 500, "debtStrikes": 3, "severanceWeeks": 2, "rosterMax": 8, "draftSize": 3 },
+  "sales": { "basePerWeek": 3000, "hypeScale": 20, "reviewExp": 2, "decay": 0.85, "minWeekly": 50 },
   "burnout": { "perWeekPlaced": 8, "recoverPerWeek": 10, "threshold": 100, "breakthroughChance": 0.35, "breakthroughQuality": 15, "breakdownBugs": 6 },
   "review": { "expectation": 70, "bugPenalty": 0.15, "min": 1, "max": 10 },
   "genres": [
@@ -20,6 +20,59 @@
   "trends": [
     { "id": "indie_darling", "name": "Indie Darling", "effects": [ { "trigger": "slot:art", "target": "hype", "op": "add", "value": 1 } ], "demand": { "puzzle": 1.3, "action": 0.9 } },
     { "id": "retro_wave", "name": "Retro Wave", "effects": [ { "trigger": "slot:audio", "target": "output", "op": "add", "value": 1 } ], "demand": { "rhythm": 1.3, "rpg": 0.9 } }
+  ],
+  "calendar": { "weeksPerQuarter": 12, "quartersPerEra": 4, "eras": 3, "payrollThresholds": [0, 0, 5000, 5000, 10000, 10000, 15000, 15000, 20000, 25000, 30000, 35000] },
+  "market": {
+    "demandStart": [0.7, 1.3], "demandStep": 0.25, "demandMin": 0.4, "demandMax": 1.8,
+    "rivalsPerRun": 3, "rivalEveryQuarters": 2, "rivalSteal": 0.3,
+    "hitReview": 7, "expectationRise": 8, "expectationMax": 110,
+    "shareWin": 1.15, "shareLose": 0.85, "shareMin": 0.5, "shareMax": 1.5,
+    "pitchOptions": 3, "eventChance": 0.75
+  },
+  "topics": [
+    { "id": "space", "name": "Space", "fit": { "action": 1.2, "puzzle": 0.9 } },
+    { "id": "fantasy", "name": "Fantasy", "fit": { "rpg": 1.3, "rhythm": 0.8 } },
+    { "id": "cats", "name": "Cats", "fit": { "puzzle": 1.3, "action": 0.8 } },
+    { "id": "zombies", "name": "Zombies", "fit": { "action": 1.3, "rhythm": 0.8 } },
+    { "id": "pirates", "name": "Pirates", "fit": { "rpg": 1.1, "action": 1.1 } },
+    { "id": "music", "name": "Music", "fit": { "rhythm": 1.4, "rpg": 0.8 } },
+    { "id": "detective", "name": "Detective", "fit": { "puzzle": 1.2, "rpg": 1.1, "action": 0.9 } },
+    { "id": "cooking", "name": "Cooking", "fit": { "puzzle": 1.1, "rhythm": 1.1, "action": 0.8 } }
+  ],
+  "platforms": [
+    { "id": "gamebox", "name": "GameBox", "curve": [0.8, 1.1, 1.2, 1.0] },
+    { "id": "pocket", "name": "Pocket Phone", "curve": [1.0, 1.2, 1.1, 0.9] },
+    { "id": "vr", "name": "VR Visor", "curve": [0.6, 0.9, 1.3, 1.3] }
+  ],
+  "rivals": [
+    { "id": "megasoft", "name": "MegaSoft", "genre": "action", "targets": [5, 6.5, 8], "twist": { "text": "Bugs count double", "bugPenaltyMul": 2 } },
+    { "id": "dragonworks", "name": "Dragonworks", "genre": "rpg", "targets": [5.5, 7, 8.5], "twist": { "text": "Hype adds to your review (+0.1 per hype)", "hypeToReview": 0.1 } },
+    { "id": "brainbox", "name": "Brainbox", "genre": "puzzle", "targets": [5, 6.5, 8], "twist": { "text": "Quality counts 20% less", "qualityMul": 0.8 } },
+    { "id": "beatlab", "name": "BeatLab", "genre": "rhythm", "targets": [4.5, 6, 7.5], "twist": { "text": "Bugs count triple", "bugPenaltyMul": 3 } },
+    { "id": "pixelforge", "name": "PixelForge", "genre": "action", "targets": [5.5, 7, 8.5], "twist": { "text": "Bugs don't count", "bugPenaltyMul": 0 } },
+    { "id": "hypetrain", "name": "HypeTrain", "genre": "rpg", "targets": [6, 7.5, 9], "twist": { "text": "Hype counts big (+0.2 per hype), quality 30% less", "hypeToReview": 0.2, "qualityMul": 0.7 } }
+  ],
+  "events": [
+    { "id": "licence_hike", "title": "Engine licence hike", "text": "Your engine vendor raises fees.", "choices": [ { "label": "Pay up", "effects": [ { "kind": "cash", "value": -4000 } ] }, { "label": "Patch around it", "effects": [ { "kind": "bugs", "value": 6 } ] } ] },
+    { "id": "viral_clip", "title": "Viral clip", "text": "A streamer loves your studio.", "choices": [ { "label": "Ride the wave", "effects": [ { "kind": "hype", "value": 8 } ] } ] },
+    { "id": "crunch_scandal", "title": "Crunch scandal", "text": "A rival's crunch makes headlines. Players ask about yours.", "choices": [ { "label": "Give everyone a week off", "effects": [ { "kind": "burnoutAll", "value": -40 }, { "kind": "cash", "value": -3000 } ] }, { "label": "Deny everything", "effects": [ { "kind": "share", "value": 0.9 } ] } ] },
+    { "id": "investor", "title": "Investor offer", "text": "An investor offers cash for a cut of future sales.", "choices": [ { "label": "Take $15k", "effects": [ { "kind": "cash", "value": 15000 }, { "kind": "share", "value": 0.85 } ] }, { "label": "Decline", "effects": [] } ] },
+    { "id": "game_jam", "title": "Game jam", "text": "The team wants to enter a weekend jam.", "choices": [ { "label": "Go for it", "effects": [ { "kind": "hype", "value": 4 }, { "kind": "burnoutAll", "value": 20 } ] }, { "label": "Rest instead", "effects": [ { "kind": "burnoutAll", "value": -20 } ] } ] },
+    { "id": "review_bombing", "title": "Review bombing", "text": "Trolls target your last game.", "choices": [ { "label": "Respond publicly", "effects": [ { "kind": "hype", "value": 3 }, { "kind": "share", "value": 0.95 } ] }, { "label": "Stay quiet", "effects": [ { "kind": "share", "value": 0.9 } ] } ] },
+    { "id": "genre_boom_rpg", "title": "RPG boom", "text": "A blockbuster RPG gets everyone playing RPGs.", "choices": [ { "label": "Noted", "effects": [ { "kind": "demand", "value": 1.4, "genre": "rpg" } ] } ] },
+    { "id": "genre_boom_puzzle", "title": "Puzzle craze", "text": "A puzzle app tops the charts.", "choices": [ { "label": "Noted", "effects": [ { "kind": "demand", "value": 1.4, "genre": "puzzle" } ] } ] },
+    { "id": "genre_slump_action", "title": "Action fatigue", "text": "Players are tired of shooters.", "choices": [ { "label": "Noted", "effects": [ { "kind": "demand", "value": 0.7, "genre": "action" } ] } ] },
+    { "id": "rhythm_festival", "title": "Music festival tie-in", "text": "A festival wants a rhythm game partner.", "choices": [ { "label": "Sign on ($2k)", "effects": [ { "kind": "cash", "value": -2000 }, { "kind": "demand", "value": 1.5, "genre": "rhythm" } ] }, { "label": "Pass", "effects": [] } ] },
+    { "id": "press_tour", "title": "Press tour", "text": "Magazines want interviews.", "choices": [ { "label": "Talk up the next game", "effects": [ { "kind": "hype", "value": 5 }, { "kind": "expectation", "value": 5 } ] }, { "label": "Keep it modest", "effects": [ { "kind": "expectation", "value": -5 } ] } ] },
+    { "id": "server_outage", "title": "Server outage", "text": "Your build server dies.", "choices": [ { "label": "Buy a new one", "effects": [ { "kind": "cash", "value": -2500 } ] }, { "label": "Make do", "effects": [ { "kind": "bugs", "value": 4 }, { "kind": "burnoutAll", "value": 10 } ] } ] },
+    { "id": "tax_refund", "title": "Tax refund", "text": "A games tax credit comes through.", "choices": [ { "label": "Bank it", "effects": [ { "kind": "cash", "value": 5000 } ] } ] },
+    { "id": "pizza_friday", "title": "Pizza Friday", "text": "Morale is low.", "choices": [ { "label": "Order pizza ($500)", "effects": [ { "kind": "cash", "value": -500 }, { "kind": "burnoutAll", "value": -15 } ] }, { "label": "Skip it", "effects": [ { "kind": "burnoutAll", "value": 10 } ] } ] },
+    { "id": "leaked_build", "title": "Leaked build", "text": "An early build leaks online.", "choices": [ { "label": "Lean into it", "effects": [ { "kind": "hype", "value": 6 }, { "kind": "bugs", "value": 3 } ] }, { "label": "Issue takedowns ($1.5k)", "effects": [ { "kind": "cash", "value": -1500 } ] } ] },
+    { "id": "critic_shift", "title": "Critics get picky", "text": "A new wave of critics raises the bar.", "choices": [ { "label": "Noted", "effects": [ { "kind": "expectation", "value": 6 } ] } ] },
+    { "id": "bundle_offer", "title": "Bundle offer", "text": "A charity bundle wants your back catalogue.", "choices": [ { "label": "Join ($4k now)", "effects": [ { "kind": "cash", "value": 4000 }, { "kind": "share", "value": 0.95 } ] }, { "label": "Decline", "effects": [] } ] },
+    { "id": "platform_promo", "title": "Platform promo", "text": "The store front-pages indie games this Quarter.", "choices": [ { "label": "Noted", "effects": [ { "kind": "demand", "value": 1.2 } ] } ] },
+    { "id": "recession", "title": "Recession", "text": "Players cut back on games.", "choices": [ { "label": "Noted", "effects": [ { "kind": "demand", "value": 0.8 } ] } ] },
+    { "id": "community_mod", "title": "Modding scene", "text": "Fans mod your games.", "choices": [ { "label": "Support mods", "effects": [ { "kind": "share", "value": 1.08 }, { "kind": "burnoutAll", "value": 10 } ] }, { "label": "Ignore them", "effects": [] } ] }
   ],
   "traits": [
     { "id": "spaghetti_coder", "name": "Spaghetti Coder", "text": "+3 output, +2 bugs", "effects": [
