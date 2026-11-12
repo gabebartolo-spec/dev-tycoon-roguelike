@@ -1,0 +1,34 @@
+import type { RunState } from '../sim/run';
+
+/** Fixed seed: a plain first project on it reviews 6+, so a newcomer's first release lands well. */
+export const TUTORIAL_SEED = 5;
+
+/** Steps the player passes by reading (no action moves them on); the tutorial ends once all are dismissed. */
+export const READ_ONLY = ['phases', 'review', 'payroll'];
+
+/** Finished only when every read step was dismissed: a null step mid-project just means "nothing to say yet". */
+export const tutorialFinished = (done: Set<string>) => READ_ONLY.every((id) => done.has(id));
+
+export interface Step { id: string; title: string; text: string }
+
+/**
+ * The coach's current step, read from run state alone (no step counter to drift): the tutorial
+ * follows whatever the player actually did, and reloading mid-run shows the right step.
+ */
+export function tutorialStep(s: RunState, done: Set<string>): Step | null {
+  const placed = Object.values(s.board).filter(Boolean).length;
+  if (s.event) return { id: 'event', title: 'An event', text: 'Each Quarter can open with an event. Every choice has a cost and a payoff: read both, then pick one.' };
+  if (!s.project && s.releases.length === 0)
+    return { id: 'pitch', title: 'Pick a game', text: 'Each pitch is a genre plus a topic. Higher market demand means more sales. Pick one to start.' };
+  if (s.project && s.project.phase === 0 && placed === 0)
+    return { id: 'place', title: 'Staff your desks', text: 'Drag a worker onto a department, or click their card and then a slot. The green numbers show what they would add before you commit.' };
+  if (s.project && s.project.phase === 0)
+    return { id: 'adjacent', title: 'Neighbours matter', text: 'Some traits fire for the desk beside them. Fill more desks, then press End Prototype. Each phase costs its weeks of salary and rent.' };
+  if (s.project && !done.has('phases'))
+    return { id: 'phases', title: 'A new phase', text: 'Each phase weights departments differently. Re-place your team, then end the phase. After the last phase the game ships.' };
+  if (!s.project && s.releases.length > 0 && !done.has('review'))
+    return { id: 'review', title: 'Your review', text: 'The score is quality against the market\'s expectation, plus hype, minus bugs. "Helped" and "Hurt" show exactly why. Sales then pay out every week.' };
+  if (done.has('review') && !done.has('payroll'))
+    return { id: 'payroll', title: 'Payroll Day', text: 'At the end of each Quarter you must hold the cash shown in the top bar. Miss it three times and the studio folds. Survive to week 145 to win.' };
+  return null;
+}

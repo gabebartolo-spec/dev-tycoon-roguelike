@@ -3,6 +3,7 @@ import { forecast, quarterOf, rivalById } from './sim/market';
 import { demandFor } from './sim/run';
 import { useGame } from './store/game';
 import { RunScreen } from './ui/RunScreen';
+import { Coach } from './ui/Coach';
 import { Between } from './ui/Between';
 import { Hud } from './ui/Hud';
 import { PostMortem } from './ui/PostMortem';
@@ -98,6 +99,7 @@ export default function App() {
       {!hub && <Hud />}
       {error && <div className="error" role="alert">{error}</div>}
       {!hub && !over && <EventCard />}
+      <Coach />
       {hub ? <Hub /> : over ? <PostMortem /> : state.project ? <RunScreen /> : (<><Showdowns /><Review /><MarketMap /><Between /><PitchPicker /></>)}
     </main>
   );

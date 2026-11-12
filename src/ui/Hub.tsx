@@ -1,3 +1,5 @@
+import { useTutorial } from '../store/tutorial';
+import { TUTORIAL_SEED } from './tutorial';
 import { useState } from 'react';
 import { baseContent } from '../data/load';
 import { studiosAvailable } from '../sim/meta';
@@ -6,6 +8,8 @@ import { useGame } from '../store/game';
 /** Studio Hub, between runs: spend reputation on unlocks, then pick a starting studio and a Crunch Level. */
 export function Hub() {
   const { meta, metaRecovered, buyUnlock, startRun } = useGame();
+  const startTutorial = useTutorial((s) => s.start);
+  const stopTutorial = useTutorial((s) => s.stop);
   const studios = studiosAvailable(meta, baseContent);
   const [studio, setStudio] = useState(studios[0].id);
   const [crunch, setCrunch] = useState(meta.crunchMax);
@@ -64,7 +68,10 @@ export function Hub() {
           </label>
         ))}
       </>)}
-      <button className="primary" onClick={() => startRun(studio, crunch, leaveOut)}>Start run</button>
+      <button className="primary" onClick={() => { stopTutorial(); startRun(studio, crunch, leaveOut); }}>Start run</button>
+      <button className={meta.runs === 0 ? 'primary' : ''} onClick={() => { startRun(baseContent.studios[0].id, 0, meta.unlocked, TUTORIAL_SEED); startTutorial(); }}>
+        {meta.runs === 0 ? 'New here? Play the tutorial' : 'Tutorial'}
+      </button>
     </section>
   );
 }
