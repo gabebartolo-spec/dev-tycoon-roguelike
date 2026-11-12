@@ -2,9 +2,9 @@ import { DndContext, KeyboardSensor, PointerSensor, useDroppable, useSensor, use
 import { useState } from 'react';
 import { content } from '../data/load';
 import type { Dept } from '../data/schemas';
-import { phaseTotals, preview } from '../sim/run';
+import { phaseTotals, preview, weeklyCosts } from '../sim/run';
 import { useGame } from '../store/game';
-import { signed } from './format';
+import { money, signed } from './format';
 import { Delta, WorkerCard } from './widgets';
 
 function Slot({ dept, workerId, ghost, onActivate }: { dept: Dept; workerId: string | null; ghost: ReturnType<typeof preview>; onActivate: () => void }) {
@@ -23,18 +23,16 @@ function Slot({ dept, workerId, ghost, onActivate }: { dept: Dept; workerId: str
 }
 
 export function RunScreen() {
-  const { state, dispatch, undo, history } = useGame();
+  const { state, dispatch, undo, undoMarks } = useGame();
   const [selected, setSelected] = useState<string | null>(null);
   const [hover, setHover] = useState<{ dept: Dept; workerId: string } | null>(null);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }), useSensor(KeyboardSensor));
   const project = state.project!;
   const phase = content.phases[project.phase];
   const genre = content.genres.find((g) => g.id === project.genreId)!;
-  const trend = content.trends.find((t) => t.id === state.trendId)!;
   const now = phaseTotals(state, content)!;
   const placed = new Set(Object.values(state.board).filter(Boolean) as string[]);
-  const tray = state.roster.filter((id) => !placed.has(id));
-  const payroll = state.roster.reduce((s, id) => s + content.workers.find((w) => w.id === id)!.salary, 0);
+  const tray = state.roster.filter((id) => !placed.has(id) && !state.benched.includes(id));
 
   // Ghost deltas: the dragged card over a slot, or the selected card previewed on every slot.
   const ghostFor = (dept: Dept) => {
@@ -62,14 +60,8 @@ export function RunScreen() {
 
   return (
     <DndContext sensors={sensors} onDragOver={onDragOver} onDragEnd={onDragEnd} onDragCancel={() => setHover(null)}>
-      <header className="hud">
-        <span><b>{genre.name}</b> · {phase.name} ({project.phase + 1}/{content.phases.length}, {phase.weeks} wk)</span>
-        <span>Week {state.week}</span>
-        <span>Cash ${state.cash.toLocaleString()} <span className="muted">(−${(payroll * phase.weeks).toLocaleString()} this phase)</span></span>
-        <span>Trend: {trend.name}</span>
-      </header>
-
       <section className="totals">
+        <div><b>{genre.name}</b> · {phase.name} ({project.phase + 1}/{content.phases.length}, {phase.weeks} wk, −{money(weeklyCosts(state, content) * phase.weeks)})</div>
         <div>Project so far: <Delta q={project.quality} h={project.hype} b={project.bugs} /></div>
         <div>This phase: <Delta q={now.quality} h={now.hype} b={now.bugs} /></div>
       </section>
@@ -81,12 +73,13 @@ export function RunScreen() {
       </section>
 
       <section className="tray" aria-label="Roster">
-        {tray.map((id) => <WorkerCard key={id} id={id} selected={selected === id} onSelect={() => setSelected(selected === id ? null : id)} />)}
+        {tray.map((id) => <WorkerCard key={id} id={id} burnout={state.burnout[id]} selected={selected === id} onSelect={() => setSelected(selected === id ? null : id)} />)}
         {tray.length === 0 && <div className="muted">Everyone is placed.</div>}
+        {state.benched.map((id) => <div key={id} className="offer"><WorkerCard id={id} static /><span className="neg">Burnt out: back next phase</span></div>)}
       </section>
 
       <footer className="controls">
-        <button onClick={undo} disabled={!history.length}>Undo</button>
+        <button onClick={undo} disabled={!undoMarks.length}>Undo</button>
         <button className="primary" onClick={() => dispatch({ type: 'endPhase' })}>
           End {phase.name} → Q {signed(now.quality)}, H {signed(now.hype)}, B {signed(now.bugs)}
         </button>

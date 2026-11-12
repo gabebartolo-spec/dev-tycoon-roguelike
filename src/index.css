@@ -42,3 +42,12 @@ button:disabled { opacity: 0.4; cursor: default; }
 .review .score { color: var(--accent); }
 .why { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; font-size: 14px; }
 @media (max-width: 720px) { .board { grid-template-columns: repeat(2, 1fr); } .card { width: 100%; } .why { grid-template-columns: 1fr; } }
+.offer { display: grid; gap: 6px; align-content: start; }
+.card.static { cursor: default; }
+.burnout { height: 4px; background: var(--line); border-radius: 2px; overflow: hidden; }
+.burnout > span { display: block; height: 100%; background: var(--hype); }
+.cash-graph { width: 100%; height: 160px; margin: 8px 0; }
+.cash-graph .line { fill: none; stroke: var(--accent); stroke-width: 2; vector-effect: non-scaling-stroke; }
+.cash-graph .zero { vector-effect: non-scaling-stroke; }
+.cash-graph .zero { stroke: var(--neg); stroke-dasharray: 4 4; }
+.error { color: var(--neg); }

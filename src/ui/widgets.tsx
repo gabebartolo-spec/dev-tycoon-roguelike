@@ -6,21 +6,26 @@ export function TraitChip({ id }: { id: string }) {
   return <span className="trait" title={t.text}>{t.name}<span className="trait-text">{t.text}</span></span>;
 }
 
-export function WorkerCard({ id, selected, onSelect, compact }: { id: string; selected?: boolean; onSelect?: () => void; compact?: boolean }) {
+export function WorkerCard({ id, selected, onSelect, compact, static: still, burnout }: {
+  id: string; selected?: boolean; onSelect?: () => void; compact?: boolean; static?: boolean; burnout?: number;
+}) {
   const w = workerById(id);
-  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: `worker:${id}`, data: { workerId: id } });
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: `worker:${id}`, data: { workerId: id }, disabled: still });
   const s = w.stats;
   return (
     <div
-      ref={setNodeRef}
-      {...listeners}
-      {...attributes}
+      ref={still ? undefined : setNodeRef}
+      {...(still ? {} : listeners)}
+      {...(still ? {} : attributes)}
       onClick={onSelect}
       onKeyDown={(e) => { if (e.key === 'Enter') onSelect?.(); }}
       aria-pressed={selected}
       aria-label={`${w.name}, ${w.traits.map((t) => traitById(t).name).join(', ')}`}
-      className={`card ${selected ? 'selected' : ''} ${isDragging ? 'dragging' : ''} ${compact ? 'compact' : ''}`}
+      className={`card ${selected ? 'selected' : ''} ${isDragging ? 'dragging' : ''} ${compact ? 'compact' : ''} ${still ? 'static' : ''}`}
     >
+      {burnout !== undefined && (
+        <div className="burnout" title={`Burnout ${Math.round(burnout)}`} aria-label={`Burnout ${Math.round(burnout)}`}><span style={{ width: `${Math.min(100, burnout)}%` }} /></div>
+      )}
       <div className="card-head"><b>{w.name}</b><span className="muted">${w.salary}/wk</span></div>
       <div className="stats">
         <span>C{s.code}</span><span>D{s.design}</span><span>A{s.art}</span><span>S{s.audio}</span>

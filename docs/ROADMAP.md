@@ -25,16 +25,18 @@ by itself, stop and redesign before building anything else.
 - Exit: 5 testers each play 5 projects; at least 3 of 5 say the slot choices felt non-obvious. All triggers are
   covered by tests.
 
-## M2: Survival loop
+## M2: Survival loop (sim + UI done 2026-11-13; exit playtest pending)
 Goal: a full run from first project to bankruptcy or win, playable in one sitting.
-- [ ] Turn per phase (D-3): each phase advances a data-defined number of weeks
-- [ ] Ledger with tagged lines (salary, rent, licences, sales); "weeks of runway" on the HUD
-- [ ] Sales curve after release (decay scaled by Hype × trend demand)
-- [ ] Quarters, Payroll Day thresholds, 3 debt strikes (D-2), bankruptcy on the third
-- [ ] Hiring draft (1 of 3) between projects; firing with severance
-- [ ] Burnout meter; Breakdown/Breakthrough roll at 100 (seeded)
-- [ ] Post-mortem screen: cash graph, top 3 causes of death, best project
-- [ ] Mid-run save: seed + command log, with a replay test
+- [x] Turn per phase (D-3): each phase advances a data-defined number of weeks
+- [x] Ledger with tagged lines (salary, rent, licences, sales); "weeks of runway" on the HUD
+- [x] Sales curve after release (decay scaled by Hype × trend demand)
+- [x] Quarters, Payroll Day thresholds, 3 debt strikes (D-2), bankruptcy on the third
+- [x] Hiring draft (1 of 3) between projects; firing with severance
+- [x] Burnout meter; Breakdown/Breakthrough roll at 100 (seeded)
+- [x] Post-mortem screen: cash graph, top 3 causes of death, best project
+- [x] Mid-run save: seed + command log, with a replay test
+- Numbers live in `content.json` (`economy`, `sales`, `burnout`, trend `demand`). Win = survive to `winWeek` (104).
+  Bot sweep, 60 seeds: greedy placer dies at median week 44 and wins 11/60; idle studio dies by week 36.
 - Exit: a seeded full run is replayable bit-for-bit; median tester run is 45–75 min; testers can name why they lost.
 
 ## M3: Market dungeon
