@@ -124,7 +124,8 @@ export const Mod = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('rivalSteal'), add: z.number() }),
   z.object({ kind: z.literal('shareMax'), mul: z.number().positive() }),
   z.object({ kind: z.literal('strikes'), add: z.number().int() }),
-  z.object({ kind: z.literal('startWorker'), id: z.string() }),          // this worker is on the starting roster
+  z.object({ kind: z.literal('startWorker'), id: z.string() }),
+  z.object({ kind: z.literal('rentFreeUpTo'), value: z.number().int().nonnegative() }), // rent 0 while roster <= value          // this worker is on the starting roster
 ]);
 export type Mod = z.infer<typeof Mod>;
 
@@ -177,6 +178,7 @@ export const ContentPack = z.object({
   review: z.object({ expectation: z.number().positive(), bugPenalty: z.number().nonnegative(), min: z.number(), max: z.number() }),
   economy: z.object({
     rentPerWeek: z.number().nonnegative(),
+    rentFreeUpTo: z.number().int().nonnegative().default(0), // no rent while the roster is this small (Bedroom)
     debtStrikes: z.number().int().positive(),       // D-2: the Nth strike ends the run
     severanceWeeks: z.number().nonnegative(),
     rosterMax: z.number().int().positive(),

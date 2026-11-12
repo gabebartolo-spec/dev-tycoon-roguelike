@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import raw from '../data/content.json';
 import { ContentPack } from '../data/schemas';
 import { defaultOptions, runContent, type RunOptions } from './meta';
-import { apply, newRun, phaseWeeks, type Command, type RunState } from './run';
+import { apply, newRun, phaseWeeks, rentOf, type Command, type RunState } from './run';
 
 // Solo dev build (approved 2026-11-13): wearing every hat, Long Tail, Bedroom studio.
 const base = ContentPack.parse(raw);
@@ -33,11 +33,23 @@ describe('solo dev: content is gated', () => {
     expect(plain.workers.some((w) => w.tags.includes('solo'))).toBe(false);
     expect(plain.events.map((e) => e.id)).not.toContain('seventy_hour_weeks');
   });
-  it('Bedroom: you start alone with The Auteur, no rent and $20k less cash', () => {
+  it('Bedroom: you start alone with The Auteur and $20k less cash', () => {
     const s = newRun(3, solo, opts);
     expect(s.roster).toEqual(['auteur']);
     expect(s.cash).toBe(base.startingCash - 20000);
-    expect(solo.economy.rentPerWeek).toBe(0);
+  });
+  it('on: no rent while you work alone; hire anyone and full rent is due', () => {
+    const s = newRun(3, solo, opts);
+    expect(rentOf(s, solo)).toBe(0);
+    expect(rentOf({ ...s, roster: ['auteur', 'hobbyist'] }, solo)).toBe(solo.economy.rentPerWeek);
+    expect(solo.economy.rentPerWeek).toBe(base.economy.rentPerWeek);
+    let t = step(s, { type: 'startProject', ...s.pitch[0] });
+    t = step(t, { type: 'endPhase' }); // empty board: only rent could be charged, and there is none
+    expect(t.ledger.rent).toBe(0);
+  });
+  it('off: other studios pay rent with one worker', () => {
+    const plain = runContent(base, defaultOptions(base));
+    expect(rentOf({ ...newRun(3, plain), roster: ['ada'] }, plain)).toBe(plain.economy.rentPerWeek);
   });
 });
 

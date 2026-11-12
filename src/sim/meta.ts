@@ -113,6 +113,7 @@ function applyMod(c: ContentPack, m: Mod): ContentPack {
     case 'expectation': return { ...c, review: { ...c.review, expectation: c.review.expectation + m.add } };
     case 'rivalTarget': return { ...c, rivals: c.rivals.map((r) => ({ ...r, targets: r.targets.map((t) => t + m.add) })) };
     case 'eventChance': return { ...c, market: { ...c.market, eventChance: Math.min(1, Math.max(0, c.market.eventChance + m.add)) } };
+    case 'rentFreeUpTo': return { ...c, economy: { ...c.economy, rentFreeUpTo: m.value } };
     case 'rosterSize': return { ...c, rosterSize: Math.max(1, c.rosterSize + m.add) };
     case 'burnout': return { ...c, burnout: { ...c.burnout, perWeekPlaced: c.burnout.perWeekPlaced * m.mul } };
     case 'sales': return { ...c, sales: { ...c.sales, basePerWeek: c.sales.basePerWeek * m.mul } };

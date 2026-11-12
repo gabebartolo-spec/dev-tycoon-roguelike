@@ -149,7 +149,9 @@ const payrollOf = (s: RunState, content: ContentPack) => {
   const c = withModels(content, s.week);
   return s.roster.reduce((sum, id) => sum + salaryOf(id, c), 0);
 };
-export const weeklyCosts = (s: RunState, content: ContentPack) => payrollOf(s, content) + content.economy.rentPerWeek;
+/** Rent this week: none while the roster is no bigger than rentFreeUpTo (working from the bedroom). */
+export const rentOf = (s: RunState, content: ContentPack) => (s.roster.length <= content.economy.rentFreeUpTo ? 0 : content.economy.rentPerWeek);
+export const weeklyCosts = (s: RunState, content: ContentPack) => payrollOf(s, content) + rentOf(s, content);
 
 /** Weeks the current cash lasts at current costs, counting sales already earning. Infinity if it never runs out. */
 export function runway(s: RunState, content: ContentPack): number {
@@ -260,7 +262,7 @@ function tick(s0: RunState, weeks: number, content: ContentPack): [RunState, Sim
   const events: SimEvent[] = [];
   for (let i = 0; i < weeks && !s.dead && !s.won; i++) {
     const salary = payrollOf(s, content);
-    const rent = economy.rentPerWeek;
+    const rent = rentOf(s, content);
     const releases = s.releases.map((r) => ({ ...r }));
     let income = 0;
     for (const sale of s.sales) {
