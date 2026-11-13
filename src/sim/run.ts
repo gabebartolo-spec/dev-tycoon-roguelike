@@ -1,7 +1,7 @@
 import prand from 'pure-rand';
 import type { ContentPack, Dept, EventEffect } from '../data/schemas';
 import {
-  bossOf, eraOf, generateMarket, lastWeek, platformMul, quarterOf, rivalById, rivalsReleasing, targetFor, thresholdFor,
+  bossOf, eraOf, generateMarket, techAudience, lastWeek, platformMul, quarterOf, rivalById, rivalsReleasing, targetFor, thresholdFor,
   type Market,
 } from './market';
 import { defaultOptions, runContent, type RunOptions } from './meta';
@@ -22,6 +22,7 @@ export interface Project {
   promises?: string[]; // Overpromiser: promises this game carries
   backlash?: number;   // review points off this game for earlier broken promises
   opTraits?: string[]; // Overpromiser rule traits (keynote, spin, apology) of cards that worked a phase
+  tech?: string;       // Tech: the Tech platform this game targets
 }
 
 export interface ReviewLine { source: string; impact: number } // impact on the 1-10 review score
@@ -40,6 +41,8 @@ export interface Release {
   cost: number;    // salaries + rent paid while it was in development
   backlash?: number; // review points it lost to earlier broken promises
   broken?: string[]; // promises it broke
+  tech?: string;     // Tech platform it shipped on
+  audience?: number; // that platform's audience share at release (1 for a breakout)
   revenue: number; // sales so far
 }
 
@@ -87,7 +90,7 @@ export interface RunState {
 }
 
 export type Command =
-  | { type: 'startProject'; genreId: string; topicId: string; reskin?: boolean; promises?: string[] } // reskin: any topic, last game's genre
+  | { type: 'startProject'; genreId: string; topicId: string; reskin?: boolean; promises?: string[]; tech?: string } // reskin: any topic, last game's genre
   | { type: 'place'; dept: Dept; workerId: string | null }
   | { type: 'endPhase' }
   | { type: 'hire'; workerId: string }
@@ -131,9 +134,17 @@ export function hatWeeks(board: Board, content: ContentPack): number {
   return Math.max(0, ...[...desks.values()].map((n) => n - 1)) * content.solo.weeksPerHat;
 }
 
-/** Weeks the current phase takes with this board (base weeks plus hats). */
+/** Tech: a Tech game's extraPhase takes extraWeeks longer unless a Dev Kit card is on the board. */
+export function techWeeks(s: RunState, content: ContentPack): number {
+  const T = content.tech;
+  if (!s.project?.tech || content.phases[s.project.phase].id !== T.extraPhase) return 0;
+  const devKit = Object.values(s.board).some((id) => id && content.workers.find((w) => w.id === id)?.traits.includes(T.devKitTrait));
+  return devKit ? 0 : T.extraWeeks;
+}
+
+/** Weeks the current phase takes with this board (base weeks plus hats plus Tech). */
 export const phaseWeeks = (s: RunState, content: ContentPack) =>
-  s.project ? content.phases[s.project.phase].weeks + hatWeeks(s.board, content) : 0;
+  s.project ? content.phases[s.project.phase].weeks + hatWeeks(s.board, content) + techWeeks(s, content) : 0;
 
 /**
  * New Model Drops: from Era 2 on, every AI card has +statPerEra on its best stat and +salaryPerEra salary per Era.
@@ -375,7 +386,7 @@ export function launchSales(r: Pick<Release, 'hype' | 'review'>, demand: number,
 /** Totals the current board would produce if the phase ended now. */
 export function phaseTotals(s: RunState, content: ContentPack): Totals | null {
   if (!s.project) return null;
-  return resolve(s.board, { content: withModels(content, s.week), genreId: s.project.genreId, phaseId: content.phases[s.project.phase].id, trendId: s.trendId });
+  return resolve(s.board, { content: withModels(content, s.week), genreId: s.project.genreId, phaseId: content.phases[s.project.phase].id, trendId: s.trendId, tech: !!s.project.tech });
 }
 
 /** Pure preview: apply a command to a copy and diff this phase's totals. */
@@ -492,6 +503,12 @@ export function apply(s: RunState, cmd: Command, content: ContentPack): [RunStat
         if (promises.length > O.max) throw new Error(`at most ${O.max} promises`);
         if (O.enabled && promises.length < O.minPromises) throw new Error(`at least ${O.minPromises} promises`);
       }
+      const T = content.tech;
+      if (cmd.tech !== undefined) {
+        if (!T.enabled) throw new Error('Tech is locked');
+        if (cmd.reskin) throw new Error('a reskin cannot target a Tech platform');
+        if (techAudience(s.market, cmd.tech, quarterOf(s.week, content), content) <= 0) throw new Error(`${cmd.tech} is not on sale`);
+      }
       const contributions: Contribution[] = [];
       if (s.carry.hype) contributions.push({ source: 'Events', metric: 'hype', delta: s.carry.hype });
       if (s.carry.bugs) contributions.push({ source: 'Events', metric: 'bugs', delta: s.carry.bugs });
@@ -499,13 +516,20 @@ export function apply(s: RunState, cmd: Command, content: ContentPack): [RunStat
       if (debt) contributions.push({ source: 'Tech debt', metric: 'bugs', delta: debt });
       const promised = promises.length * O.hype;
       if (promised) contributions.push({ source: 'Promises', metric: 'hype', delta: promised });
+      const techHype = cmd.tech !== undefined ? T.hype : 0;
+      if (techHype) contributions.push({ source: 'Launch partner', metric: 'hype', delta: techHype });
+      const partner = cmd.tech !== undefined ? T.partnerCash : 0;
       const project: Project = {
-        genreId: cmd.genreId, topicId: cmd.topicId, phase: cmd.reskin ? 1 : 0, quality: 0, hype: s.carry.hype + promised, bugs: s.carry.bugs + debt, contributions,
+        genreId: cmd.genreId, topicId: cmd.topicId, phase: cmd.reskin ? 1 : 0, quality: 0, hype: s.carry.hype + promised + techHype, bugs: s.carry.bugs + debt, contributions,
         ...(cmd.reskin ? { reskin: true } : {}),
         ...(promises.length ? { promises } : {}),
         ...(s.backlash ? { backlash: s.backlash } : {}),
+        ...(cmd.tech !== undefined ? { tech: cmd.tech } : {}),
       };
-      return [{ ...s, project, projectCost: 0, draft: null, carry: { hype: 0, bugs: 0 } }, [{ type: 'projectStarted', genreId: cmd.genreId, topicId: cmd.topicId }]];
+      return [{
+        ...s, project, projectCost: 0, draft: null, carry: { hype: 0, bugs: 0 },
+        ...(partner ? { cash: s.cash + partner, ledger: { ...s.ledger, events: s.ledger.events + partner } } : {}),
+      }, [{ type: 'projectStarted', genreId: cmd.genreId, topicId: cmd.topicId }]];
     }
     case 'place': {
       if (!(cmd.dept in s.board)) throw new Error(`unknown dept ${cmd.dept}`);
@@ -587,7 +611,12 @@ export function apply(s: RunState, cmd: Command, content: ContentPack): [RunStat
         const backlash = !O.enabled ? undefined
           : (release.review >= O.redeemReview ? 0 : Math.max(0, (next.backlash ?? 0) - O.fade)) + broken.length * per;
         const hit = release.review >= M.hitReview;
-        const demand = demandFor(next, project, content);
+        // Tech: sells to the platform's audience at release (fixed for the game's life); a breakout sells to everyone.
+        if (project.tech) {
+          release.tech = project.tech;
+          release.audience = release.review >= content.tech.breakoutReview ? 1 : techAudience(next.market, project.tech, quarterOf(next.week, content), content);
+        }
+        const demand = demandFor(next, project, content) * (release.audience ?? 1);
         const SW = content.shovelware;
         // Shovelware: a reskin sells as an impulse buy (review floor) and floods its genre; a good game wins share back.
         const sold = { hype: release.hype, review: project.reskin ? Math.max(release.review, SW.impulseFloor) : release.review };
