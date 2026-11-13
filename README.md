@@ -4,12 +4,12 @@ Roguelike studio-survival game: your bank account is your health, the shifting g
 and you draft developers with traits into department slots to build hype and keep bugs down.
 
 ## Stack
-React 18 + TypeScript (Vite), Zustand, Zod-validated JSON content, Vitest, react-three-fiber studio view (M5), Tauri for desktop (M6).
+React 18 + TypeScript (Vite), Zustand, Zod-validated JSON content, Vitest, react-three-fiber studio view (M5), Tauri for desktop (M7).
 
 ## Layout
 - `src/sim/` - pure TypeScript simulation (no React). `apply(state, command) -> [state, events]`, seeded and replayable.
 - `src/data/` - content JSON + Zod schemas. Balance lives here, not in code.
-- `src/ui/`, `src/store/`, `src/studio3d/` - coming in M1+.
+- `src/ui/` - React screens; `src/store/` - Zustand store that dispatches commands to the sim.
 
 ## Run
     npm install
@@ -26,5 +26,8 @@ React 18 + TypeScript (Vite), Zustand, Zod-validated JSON content, Vitest, react
 | M2 | Survival loop: weeks, payroll, releases and sales, bankruptcy, death report |
 | M3 | Market dungeon: seeded trends, rivals, quarter events |
 | M4 | Meta-progression: reputation, studio upgrades, versioned save |
-| M5 | Content, juice and the 3D studio view |
-| M6 | Balance sweeps, Tauri build, Steam |
+| M5 | Content (builds), juice, tutorial and the 3D studio view |
+| M6 | Balance: bot players in CI, telemetry, tuning pass |
+| M7 | Desktop (Tauri) and polish |
+| M8 | Early Access on Steam |
+| M9 | 1.0 |
