@@ -66,10 +66,10 @@ describe('tech: platform audience', () => {
 
 describe('tech: targeting a platform', () => {
   const s0 = launched(newRun(3, garage));
-  it('pays $10,000 partner money and +10 hype at the start', () => {
+  it('pays $9,000 partner money and +10 hype at the start', () => {
     const s = start(s0, garage, 'vr');
-    expect(s.cash - s0.cash).toBe(10000);
-    expect(s.ledger.events).toBe(10000);
+    expect(s.cash - s0.cash).toBe(9000);
+    expect(s.ledger.events).toBe(9000);
     expect(s.project!.hype).toBe(10);
     expect(s.project!.contributions).toContainEqual({ source: 'Launch partner', metric: 'hype', delta: 10 });
   });
