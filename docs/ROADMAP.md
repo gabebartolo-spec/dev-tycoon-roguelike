@@ -69,11 +69,21 @@ Goal: run 5 plays differently from run 1 because of choices, not just bigger num
 
 ## M5: Content, juice and the studio view
 - [ ] Content to 40 workers, 60 traits, 10 genres, 25 topics, 40 events, 6 rival companies
+  (now 39 workers, 42 traits, 5 genres, 8 topics, 37 events, 6 rivals)
+- [ ] Builds (D-6): each has its own starting studio, unlock and rules, and its studio wins 35-45% of bot runs
+  - [x] Vibecoding: Weekend Project, AI cards and tech debt (#14, #15, #17)
+  - [x] Solo dev: Bedroom studio, wearing every hat, Long Tail (#16)
+  - [x] Shovelware: Asset Flip Farm, reskins and asset packs (#18), 40.7%
+  - [x] Overpromiser: Hype Machine, promises, refunds and backlash (#19), 39.0%
+  - [x] Tech: Tech Demo Lab, Tech platforms and partner money (#20, #21), 36.0%
+  - [ ] MMO developer
+  - [ ] Boss ladder (D-7): indie/AA/AAA showdowns, three keys, the megapublisher superboss
+  - [ ] UI for build rules: reskin button, promise picker, Tech target picker, asset pack prices
 - [x] Framer Motion (motion 12): card lift, slot snap, floating deltas, review score reveal with readable steps
 - [x] `<StudioView>` (procedural desks for now; Tripo models when API credits exist) (react-three-fiber): low-poly desks; placed workers sit, bug swarms grow, hype lighting; driven
   only by sim events; `frameloop="demand"`
 - [ ] Audio: UI clicks, release sting, payroll tension cue
-- [ ] Tutorial run (fixed seed, scripted events)
+- [x] Tutorial run: fixed seed 2167 and a coach strip (#9, #10, #11)
 - Exit: 60 fps on a mid laptop with the studio view on; first-time testers finish the tutorial without help.
 
 ## M6: Balance and telemetry
