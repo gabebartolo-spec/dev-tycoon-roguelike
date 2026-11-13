@@ -127,6 +127,8 @@ export const Mod = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('shareMax'), mul: z.number().positive() }),
   z.object({ kind: z.literal('strikes'), add: z.number().int() }),
   z.object({ kind: z.literal('startWorker'), id: z.string() }),
+  z.object({ kind: z.literal('promises') }), // Overpromiser rules: pitches offer promises
+  z.object({ kind: z.literal('minPromises'), value: z.number().int().nonnegative() }), // every pitched game must carry this many
   z.object({ kind: z.literal('reskin') }), // Shovelware rules: reskins, impulse floor, saturation, lost share
   z.object({ kind: z.literal('rentFreeUpTo'), value: z.number().int().nonnegative() }), // rent 0 while roster <= value          // this worker is on the starting roster
 ]);
@@ -182,6 +184,28 @@ export const ContentPack = z.object({
    *  which sells as if it reviewed at least impulseFloor, floods its genre (demand x (1 - saturation) for the rest of
    *  the Quarter) and costs lost share (x shareLoss per reskin under restoreReview, down to shareMin) until a game
    *  reviews restoreReview or more. Asset-tagged cards never burn out. A board with the bundle trait sells more, faster. */
+  /** Overpromiser (off until the unlock's promises mod): each pitch offers `offer` random promises; take up to `max`
+   *  for +hype each. A game reviewing under a promise's bar breaks it: refund (share of all its sales) and backlash
+   *  (review points off later games). Each shipped game clears 1 backlash point; one reviewing redeemReview+ clears all.
+   *  Rule traits: keynote (+keynoteHype per promise), spin (refund spinRefund), apology (backlash apologyBacklash). */
+  promises: z.array(z.object({ id: z.string(), name: z.string(), bar: z.number() })).default([]),
+  overpromise: z.object({
+    enabled: z.boolean(),
+    offer: z.number().int().nonnegative(),
+    max: z.number().int().nonnegative(),
+    minPromises: z.number().int().nonnegative(),
+    hype: z.number(),
+    refund: z.number().min(0).max(1),
+    backlash: z.number().nonnegative(),
+    fade: z.number().nonnegative(),
+    redeemReview: z.number(),
+    keynoteTrait: z.string(), keynoteHype: z.number(),
+    spinTrait: z.string(), spinRefund: z.number().min(0).max(1),
+    apologyTrait: z.string(), apologyBacklash: z.number().nonnegative(),
+  }).default({
+    enabled: false, offer: 3, max: 3, minPromises: 0, hype: 12, refund: 0.2, backlash: 1, fade: 1, redeemReview: 8,
+    keynoteTrait: 'keynote', keynoteHype: 5, spinTrait: 'spin', spinRefund: 0.1, apologyTrait: 'notes_app_apology', apologyBacklash: 0.5,
+  }),
   shovelware: z.object({
     reskin: z.boolean(),
     assetTag: z.string(),

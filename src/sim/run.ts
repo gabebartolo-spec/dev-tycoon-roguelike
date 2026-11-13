@@ -19,6 +19,9 @@ export interface Project {
   solo?: boolean;   // every phase so far was worked only by solo cards: the shipped game gets the Long Tail
   reskin?: boolean; // Shovelware: a reskin of the last game (skipped Prototype; impulse floor, saturation, lost share)
   bundled?: boolean; // a Bundle Ready card worked a phase: sells more, fades faster
+  promises?: string[]; // Overpromiser: promises this game carries
+  backlash?: number;   // review points off this game for earlier broken promises
+  opTraits?: string[]; // Overpromiser rule traits (keynote, spin, apology) of cards that worked a phase
 }
 
 export interface ReviewLine { source: string; impact: number } // impact on the 1-10 review score
@@ -35,13 +38,15 @@ export interface Release {
   best: ReviewLine[];
   worst: ReviewLine[];
   cost: number;    // salaries + rent paid while it was in development
+  backlash?: number; // review points it lost to earlier broken promises
+  broken?: string[]; // promises it broke
   revenue: number; // sales so far
 }
 
 /** A released game still selling; `next` is next week's revenue, which decays every week. */
 export interface Sale { release: number; next: number; decay?: number } // decay: own weekly factor (Long Tail)
 
-export interface Pitch { genreId: string; topicId: string }
+export interface Pitch { genreId: string; topicId: string; offers?: string[] } // offers: promises you may take (Overpromiser)
 
 export interface Showdown { era: number; rivalId: string; target: number; yours: number | null; won: boolean }
 
@@ -59,6 +64,7 @@ export interface RunState {
   trendId: string;
   demand: Record<string, number>; // this Quarter's genre demand after rivals and events
   share: number;                  // market share multiplier on all sales (capped)
+  backlash?: number;              // Overpromiser: review points off the next game for broken promises
   flipShare?: number;             // Shovelware lost share: x on all sales, cut by low-review reskins, back to 1 by a good game
   expectation: number;            // the review bar; rises after each hit
   rivalGenres: Record<string, string>; // genre each rival is chasing now (copies your hits)
@@ -81,7 +87,7 @@ export interface RunState {
 }
 
 export type Command =
-  | { type: 'startProject'; genreId: string; topicId: string; reskin?: boolean } // reskin: any topic, last game's genre
+  | { type: 'startProject'; genreId: string; topicId: string; reskin?: boolean; promises?: string[] } // reskin: any topic, last game's genre
   | { type: 'place'; dept: Dept; workerId: string | null }
   | { type: 'endPhase' }
   | { type: 'hire'; workerId: string }
@@ -157,6 +163,15 @@ export function canReskin(s: RunState, topicId: string, content: ContentPack): b
   return content.shovelware.reskin && !!last && last.topicId !== topicId && content.topics.some((t) => t.id === topicId);
 }
 
+/** Overpromiser rule traits carried by the cards that worked this phase (merged into the project's). */
+function opTraitsOf(p: Project, placed: string[], content: ContentPack): Pick<Project, 'opTraits'> {
+  const O = content.overpromise;
+  const rules = [O.keynoteTrait, O.spinTrait, O.apologyTrait];
+  const got = new Set(p.opTraits ?? []);
+  for (const id of placed) for (const t of content.workers.find((w) => w.id === id)!.traits) if (rules.includes(t)) got.add(t);
+  return got.size ? { opTraits: [...got].sort() } : {};
+}
+
 const salaryOf = (id: string, content: ContentPack) => content.workers.find((w) => w.id === id)!.salary;
 const payrollOf = (s: RunState, content: ContentPack) => {
   const c = withModels(content, s.week);
@@ -186,7 +201,16 @@ function drawPitch(s0: RunState, content: ContentPack): RunState {
     let g: number, t: number;
     [g, s] = drawInt(s, content.genres.length - 1);
     [t, s] = drawInt(s, content.topics.length - 1);
-    pitch.push({ genreId: content.genres[g].id, topicId: content.topics[t].id });
+    const offers: string[] = [];
+    if (content.overpromise.enabled) {
+      const pool = content.promises.map((p) => p.id);
+      while (offers.length < content.overpromise.offer && pool.length) {
+        let k: number;
+        [k, s] = drawInt(s, pool.length - 1);
+        offers.push(pool.splice(k, 1)[0]);
+      }
+    }
+    pitch.push({ genreId: content.genres[g].id, topicId: content.topics[t].id, ...(offers.length ? { offers } : {}) });
   }
   return { ...s, pitch };
 }
@@ -234,10 +258,10 @@ export function newRun(seed: number, content: ContentPack, options: RunOptions =
 }
 
 /** Review score of a release under a rival's twist (or plain, without one). */
-export function twistedReview(r: Pick<Release, 'quality' | 'hype' | 'bugs' | 'expectation'>, content: ContentPack, rivalId?: string): number {
+export function twistedReview(r: Pick<Release, 'quality' | 'hype' | 'bugs' | 'expectation' | 'backlash'>, content: ContentPack, rivalId?: string): number {
   const t = rivalId ? rivalById(rivalId, content).twist : { qualityMul: 1, bugPenaltyMul: 1, hypeToReview: 0 };
   const { bugPenalty, min, max } = content.review;
-  const raw = (10 * r.quality * t.qualityMul) / r.expectation - r.bugs * bugPenalty * t.bugPenaltyMul + r.hype * t.hypeToReview;
+  const raw = (10 * r.quality * t.qualityMul) / r.expectation - r.bugs * bugPenalty * t.bugPenaltyMul + r.hype * t.hypeToReview - (r.backlash ?? 0);
   return Math.round(clamp(raw, min, max) * 10) / 10;
 }
 
@@ -363,15 +387,16 @@ export function preview(s: RunState, cmd: Command, content: ContentPack): { qual
   return { quality: after.quality - before.quality, hype: after.hype - before.hype, bugs: after.bugs - before.bugs };
 }
 
-export function reviewOf(p: Project, expectation: number, content: ContentPack): Pick<Release, 'review' | 'quality' | 'hype' | 'bugs' | 'best' | 'worst' | 'expectation'> {
+export function reviewOf(p: Project, expectation: number, content: ContentPack): Pick<Release, 'review' | 'quality' | 'hype' | 'bugs' | 'best' | 'worst' | 'expectation' | 'backlash'> {
   const { bugPenalty } = content.review;
-  const review = twistedReview({ quality: p.quality, hype: p.hype, bugs: p.bugs, expectation }, content);
+  const review = twistedReview({ quality: p.quality, hype: p.hype, bugs: p.bugs, expectation, backlash: p.backlash }, content);
   const lines: ReviewLine[] = mergeContributions(p.contributions)
     .filter((c) => c.metric !== 'hype')
     .map((c) => ({ source: c.source, impact: c.metric === 'quality' ? (10 * c.delta) / expectation : -c.delta * bugPenalty }));
+  if (p.backlash) lines.push({ source: 'Broken promises', impact: -p.backlash });
   const sorted = [...lines].sort((a, b) => b.impact - a.impact);
   return {
-    review, expectation, quality: p.quality, hype: p.hype, bugs: p.bugs,
+    review, expectation, quality: p.quality, hype: p.hype, bugs: p.bugs, ...(p.backlash ? { backlash: p.backlash } : {}),
     best: sorted.filter((l) => l.impact > 0).slice(0, 3),
     worst: sorted.filter((l) => l.impact < 0).reverse().slice(0, 3),
   };
@@ -454,18 +479,31 @@ export function apply(s: RunState, cmd: Command, content: ContentPack): [RunStat
     }
     case 'startProject': {
       if (s.project) throw new Error('project already running');
+      const O = content.overpromise;
+      const promises = cmd.promises ?? [];
       if (cmd.reskin) {
         if (!canReskin(s, cmd.topicId, content)) throw new Error(`cannot reskin as ${cmd.topicId}`);
         if (cmd.genreId !== s.releases[s.releases.length - 1].genreId) throw new Error('a reskin keeps the last game\'s genre');
-      } else if (!s.pitch.some((p) => p.genreId === cmd.genreId && p.topicId === cmd.topicId)) throw new Error(`not pitched ${cmd.genreId}/${cmd.topicId}`);
+        if (promises.length) throw new Error('a reskin carries no promises');
+      } else {
+        const pitched = s.pitch.find((p) => p.genreId === cmd.genreId && p.topicId === cmd.topicId);
+        if (!pitched) throw new Error(`not pitched ${cmd.genreId}/${cmd.topicId}`);
+        if (promises.some((id, i) => !pitched.offers?.includes(id) || promises.indexOf(id) !== i)) throw new Error('promise not offered');
+        if (promises.length > O.max) throw new Error(`at most ${O.max} promises`);
+        if (O.enabled && promises.length < O.minPromises) throw new Error(`at least ${O.minPromises} promises`);
+      }
       const contributions: Contribution[] = [];
       if (s.carry.hype) contributions.push({ source: 'Events', metric: 'hype', delta: s.carry.hype });
       if (s.carry.bugs) contributions.push({ source: 'Events', metric: 'bugs', delta: s.carry.bugs });
       const debt = s.carry.debt ?? 0;
       if (debt) contributions.push({ source: 'Tech debt', metric: 'bugs', delta: debt });
+      const promised = promises.length * O.hype;
+      if (promised) contributions.push({ source: 'Promises', metric: 'hype', delta: promised });
       const project: Project = {
-        genreId: cmd.genreId, topicId: cmd.topicId, phase: cmd.reskin ? 1 : 0, quality: 0, hype: s.carry.hype, bugs: s.carry.bugs + debt, contributions,
+        genreId: cmd.genreId, topicId: cmd.topicId, phase: cmd.reskin ? 1 : 0, quality: 0, hype: s.carry.hype + promised, bugs: s.carry.bugs + debt, contributions,
         ...(cmd.reskin ? { reskin: true } : {}),
+        ...(promises.length ? { promises } : {}),
+        ...(s.backlash ? { backlash: s.backlash } : {}),
       };
       return [{ ...s, project, projectCost: 0, draft: null, carry: { hype: 0, bugs: 0 } }, [{ type: 'projectStarted', genreId: cmd.genreId, topicId: cmd.topicId }]];
     }
@@ -523,6 +561,7 @@ export function apply(s: RunState, cmd: Command, content: ContentPack): [RunStat
         usedAi: s.project.usedAi || placed.some((id) => isAi(id, content)),
         solo: (s.project.solo ?? true) && placed.every((id) => isSolo(id, content)), // an empty desk (a benched solo dev) keeps it
         ...(s.project.bundled || placed.some((id) => isBundler(id, content)) ? { bundled: true } : {}),
+        ...opTraitsOf(s.project, placed, content),
       }, weeks, content);
       const [ticked, tickEvents] = tick({ ...afterBurnout, project: built }, weeks, content);
       let next = ticked;
@@ -530,19 +569,29 @@ export function apply(s: RunState, cmd: Command, content: ContentPack): [RunStat
         { type: 'phaseEnded', phaseId: phase.id, weeks, payroll: next.projectCost - s.projectCost, totals },
         ...burnEvents, ...tickEvents,
       ];
-      const project = next.project!; // events during the tick may have added hype/bugs
+      let project = next.project!; // events during the tick may have added hype/bugs
+      const O = content.overpromise;
+      const keynote = (project.promises?.length ?? 0) * (project.opTraits?.includes(O.keynoteTrait) ? O.keynoteHype : 0);
+      if (keynote) project = { ...project, hype: project.hype + keynote, contributions: [...project.contributions, { source: 'Keynote', metric: 'hype', delta: keynote }] };
       if (!next.dead && !next.won && project.phase >= content.phases.length) {
         const M = content.market;
         const release: Release = {
           genreId: project.genreId, topicId: project.topicId, week: next.week,
           ...reviewOf(project, next.expectation, content), cost: next.projectCost, revenue: 0,
         };
+        // Overpromiser: promises above the review break: refund a share of all its sales, backlash on later games.
+        const broken = (project.promises ?? []).filter((id) => content.promises.find((p) => p.id === id)!.bar > release.review);
+        if (broken.length) release.broken = broken;
+        const refund = broken.length * (project.opTraits?.includes(O.spinTrait) ? O.spinRefund : O.refund);
+        const per = project.opTraits?.includes(O.apologyTrait) ? O.apologyBacklash : O.backlash;
+        const backlash = !O.enabled ? undefined
+          : (release.review >= O.redeemReview ? 0 : Math.max(0, (next.backlash ?? 0) - O.fade)) + broken.length * per;
         const hit = release.review >= M.hitReview;
         const demand = demandFor(next, project, content);
         const SW = content.shovelware;
         // Shovelware: a reskin sells as an impulse buy (review floor) and floods its genre; a good game wins share back.
         const sold = { hype: release.hype, review: project.reskin ? Math.max(release.review, SW.impulseFloor) : release.review };
-        const launch = launchSales(sold, demand, content) * (project.bundled ? SW.bundleSales : 1);
+        const launch = launchSales(sold, demand, content) * (project.bundled ? SW.bundleSales : 1) * Math.max(0, 1 - refund);
         const decay = project.bundled ? SW.bundleDecay : project.solo ? content.solo.decay : undefined;
         const flipShare = project.reskin && release.review < SW.restoreReview ? Math.max(SW.shareMin, (next.flipShare ?? 1) * SW.shareLoss)
           : release.review >= SW.restoreReview && next.flipShare !== undefined ? 1 : next.flipShare;
@@ -555,6 +604,7 @@ export function apply(s: RunState, cmd: Command, content: ContentPack): [RunStat
           carry: debt ? { ...next.carry, debt: (next.carry.debt ?? 0) + debt } : next.carry,
           sales: [...next.sales, { release: next.releases.length, next: launch, ...(decay !== undefined ? { decay } : {}) }],
           ...(flipShare !== undefined ? { flipShare } : {}),
+          ...(backlash !== undefined ? { backlash } : {}),
           demand: project.reskin ? { ...next.demand, [project.genreId]: next.demand[project.genreId] * (1 - SW.saturation) } : next.demand,
           expectation: hit ? Math.min(M.expectationMax, next.expectation + M.expectationRise) : next.expectation,
           rivalGenres: copycat ? { ...next.rivalGenres, [copycat]: project.genreId } : next.rivalGenres,
