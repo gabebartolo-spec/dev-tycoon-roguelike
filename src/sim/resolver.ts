@@ -8,11 +8,12 @@ export interface Contribution { source: string; metric: Metric; delta: number }
 
 export interface Totals { quality: number; hype: number; bugs: number; contributions: Contribution[] }
 
-export interface ResolveCtx { content: ContentPack; genreId: string; phaseId: string; trendId?: string }
+export interface ResolveCtx { content: ContentPack; genreId: string; phaseId: string; trendId?: string; tech?: boolean }
 
-function active(e: EffectDef, dept: Dept, phaseId: string, neighbourTags: Set<string>): boolean {
+function active(e: EffectDef, dept: Dept, phaseId: string, neighbourTags: Set<string>, tech = false): boolean {
   const [kind, arg] = e.trigger.split(':');
   if (kind === 'always') return true;
+  if (kind === 'tech') return tech;
   if (kind === 'slot') return arg === dept;
   if (kind === 'phase') return arg === phaseId;
   if (kind === 'adjacent') return neighbourTags.has(arg);
@@ -58,9 +59,9 @@ export function resolve(board: Board, ctx: ResolveCtx): Totals {
     const effects: [string, EffectDef][] = [];
     for (const tid of w.traits) {
       const t = content.traits.find((x) => x.id === tid)!;
-      for (const e of t.effects) if (active(e, dept, ctx.phaseId, neighbourTags)) effects.push([`${w.name}: ${t.name}`, e]);
+      for (const e of t.effects) if (active(e, dept, ctx.phaseId, neighbourTags, ctx.tech)) effects.push([`${w.name}: ${t.name}`, e]);
     }
-    if (trend) for (const e of trend.effects) if (active(e, dept, ctx.phaseId, neighbourTags)) effects.push([`Trend: ${trend.name}`, e]);
+    if (trend) for (const e of trend.effects) if (active(e, dept, ctx.phaseId, neighbourTags, ctx.tech)) effects.push([`Trend: ${trend.name}`, e]);
 
     // Own output: weighted by genre into quality, or for a support dept converted into hype / bugs.
     const metric: Metric = support ? support.metric : 'quality';

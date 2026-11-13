@@ -9,6 +9,7 @@ export interface Market {
   quarters: QuarterMarket[];
   rivals: string[];    // rival ids in this run; the Era boss is rivals[era % length]
   platforms: string[]; // platform id per Era
+  techLaunch?: Record<string, number>; // Tech: launch Quarter of each Tech platform (only when Tech is on)
 }
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
@@ -33,7 +34,17 @@ export function generateMarket(seed: number, content: ContentPack): Market {
   const rivals: string[] = [];
   while (rivals.length < M.rivalsPerRun) rivals.push(pool.splice(int(pool.length - 1), 1)[0]);
   const platforms = Array.from({ length: C.eras }, () => pick(content.platforms).id);
-  return { quarters, rivals, platforms };
+  if (!content.tech.enabled) return { quarters, rivals, platforms };
+  // Drawn last, so turning Tech on leaves every earlier draw (demand, trends, rivals, platforms) unchanged.
+  const techLaunch = Object.fromEntries(content.techPlatforms.map((p) => [p.id, int(content.tech.launchMax)]));
+  return { quarters, rivals, platforms, techLaunch };
+}
+
+/** Tech platform audience (0..1) in a Quarter: the curve by Quarters since launch; 0 before launch and once dead. */
+export function techAudience(market: Market, id: string, quarter: number, content: ContentPack): number {
+  const launch = market.techLaunch?.[id];
+  if (launch === undefined) return 0;
+  return content.tech.curve[quarter - launch] ?? 0;
 }
 
 export const quarterOf = (week: number, content: ContentPack) => Math.floor((week - 1) / content.calendar.weeksPerQuarter);

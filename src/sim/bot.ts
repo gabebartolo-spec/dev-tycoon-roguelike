@@ -1,4 +1,5 @@
 import type { ContentPack } from '../data/schemas';
+import { quarterOf, techAudience } from './market';
 import { apply, canReskin, demandFor, newRun, phaseTotals, type RunState } from './run';
 
 /**
@@ -6,10 +7,11 @@ import { apply, canReskin, demandFor, newRun, phaseTotals, type RunState } from 
  * slot with the worker who adds the most review points, answers events with their first choice, hires while cash is
  * comfortable. With Shovelware it reskins its last game (best-demand new topic) while lost share stays above
  * reskinShare, and makes a full game otherwise. With Overpromiser it takes the offered promises whose bar is at or
- * below its last game's review (5 for the first game), lowest bars first, at least the studio minimum.
+ * below its last game's review (5 for the first game), lowest bars first, at least the studio minimum. With Tech it
+ * targets the live Tech platform with the largest audience when that audience is at least techMin.
  * Deterministic: same seed, same run.
  */
-export function playBot(seed: number, content: ContentPack, maxCommands = 2000, reskinShare = 0.7): RunState {
+export function playBot(seed: number, content: ContentPack, maxCommands = 2000, reskinShare = 0.7, techMin = 0.3): RunState {
   let s = newRun(seed, content);
   const step = (cmd: Parameters<typeof apply>[1]) => { s = apply(s, cmd, content)[0]; };
   const score = (t: RunState) => {
@@ -33,7 +35,11 @@ export function playBot(seed: number, content: ContentPack, maxCommands = 2000, 
       const offers = [...(best.offers ?? [])].sort((a, b) => bar(a) - bar(b));
       const safe = offers.filter((id) => bar(id) <= (last?.review ?? 5));
       const promises = (safe.length >= O.minPromises ? safe : offers.slice(0, O.minPromises)).slice(0, O.max);
-      step({ type: 'startProject', genreId: best.genreId, topicId: best.topicId, ...(promises.length ? { promises } : {}) });
+      const q = quarterOf(s.week, content);
+      const tech = !content.tech.enabled ? undefined : content.techPlatforms
+        .map((p) => ({ id: p.id, a: techAudience(s.market, p.id, q, content) }))
+        .filter((p) => p.a > 0 && p.a >= techMin).sort((a, b) => b.a - a.a)[0]?.id;
+      step({ type: 'startProject', genreId: best.genreId, topicId: best.topicId, ...(promises.length ? { promises } : {}), ...(tech ? { tech } : {}) });
       continue;
     }
     for (const dept of content.departments) {

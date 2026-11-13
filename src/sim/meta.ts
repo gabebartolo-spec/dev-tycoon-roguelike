@@ -115,6 +115,7 @@ function applyMod(c: ContentPack, m: Mod): ContentPack {
     case 'eventChance': return { ...c, market: { ...c.market, eventChance: Math.min(1, Math.max(0, c.market.eventChance + m.add)) } };
     case 'promises': return { ...c, overpromise: { ...c.overpromise, enabled: true } };
     case 'minPromises': return { ...c, overpromise: { ...c.overpromise, minPromises: m.value } };
+    case 'tech': return { ...c, tech: { ...c.tech, enabled: true } };
     case 'reskin': return { ...c, shovelware: { ...c.shovelware, reskin: true } };
     case 'rentFreeUpTo': return { ...c, economy: { ...c.economy, rentFreeUpTo: m.value } };
     case 'rosterSize': return { ...c, rosterSize: Math.max(1, c.rosterSize + m.add) };

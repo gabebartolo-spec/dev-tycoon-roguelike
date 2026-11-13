@@ -12,7 +12,8 @@ export type Target = z.infer<typeof Target>;
 
 export const EffectDef = z.object({
   // always | slot:<dept> | adjacent:<tag> (a neighbouring slot holds a worker with that tag) | phase:<phase id>
-  trigger: z.string().regex(/^(always|slot:[a-z]+|adjacent:[a-z_]+|phase:[a-z]+)$/),
+  // | tech (the game targets a Tech platform)
+  trigger: z.string().regex(/^(always|slot:[a-z]+|adjacent:[a-z_]+|phase:[a-z]+|tech)$/),
   target: Target,
   op: z.enum(['add', 'mul']),
   value: z.number(),
@@ -129,6 +130,7 @@ export const Mod = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('startWorker'), id: z.string() }),
   z.object({ kind: z.literal('promises') }), // Overpromiser rules: pitches offer promises
   z.object({ kind: z.literal('minPromises'), value: z.number().int().nonnegative() }), // every pitched game must carry this many
+  z.object({ kind: z.literal('tech') }), // Tech rules: games may target a Tech platform
   z.object({ kind: z.literal('reskin') }), // Shovelware rules: reskins, impulse floor, saturation, lost share
   z.object({ kind: z.literal('rentFreeUpTo'), value: z.number().int().nonnegative() }), // rent 0 while roster <= value          // this worker is on the starting roster
 ]);
@@ -218,6 +220,25 @@ export const ContentPack = z.object({
     bundleSales: z.number().positive(), // launch sales x this
     bundleDecay: z.number().gt(0).lt(1), // weekly sales factor
   }).default({ reskin: false, assetTag: 'asset', impulseFloor: 5, saturation: 0.1, shareLoss: 0.95, shareMin: 0.5, restoreReview: 7, bundleTrait: 'bundle_ready', bundleSales: 1.2, bundleDecay: 0.8 }),
+  /** Tech (off until the unlock's tech mod): each Tech platform launches in a seeded Quarter (0..launchMax); its
+   *  audience follows `curve` by Quarters since launch, then it is dead. A game may target a live one: partnerCash and
+   *  +hype at the start, extraWeeks on extraPhase unless a devKitTrait card is on the board, and sales x the audience
+   *  at release (a game reviewing breakoutReview+ sells to everyone). */
+  techPlatforms: z.array(z.object({ id: z.string(), name: z.string() })).default([]),
+  tech: z.object({
+    enabled: z.boolean(),
+    curve: z.array(z.number().min(0).max(1)).min(1),
+    launchMax: z.number().int().nonnegative(),
+    partnerCash: z.number(),
+    hype: z.number(),
+    extraWeeks: z.number().int().nonnegative(),
+    extraPhase: z.string(),
+    devKitTrait: z.string(),
+    breakoutReview: z.number(),
+  }).default({
+    enabled: false, curve: [0.1, 0.2, 0.3, 0.4, 0.3, 0.2, 0.1], launchMax: 8, partnerCash: 10000, hype: 10,
+    extraWeeks: 1, extraPhase: 'production', devKitTrait: 'dev_kit', breakoutReview: 8,
+  }),
   review: z.object({ expectation: z.number().positive(), bugPenalty: z.number().nonnegative(), min: z.number(), max: z.number() }),
   economy: z.object({
     rentPerWeek: z.number().nonnegative(),
