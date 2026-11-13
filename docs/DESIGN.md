@@ -109,8 +109,10 @@ options for the next attempt.
     an 8+ game. Hype Machine (must carry 1+ promise) wins 39.0% of bot runs.
   - Tech: VR, AR and special controllers are platforms; the bill is a small audience, platform collapse and dev cost.
     Built (2026-11-13): 4 Tech platforms (VR, AR, plastic instrument, motion) launch in seeded Quarters; audience
-    10-40% and back over 7 Quarters, then dead. Targeting one pays $10,000 partner money and +10 hype, Production +1
+    10-40% and back over 7 Quarters, then dead. Targeting one pays $9,000 partner money and +10 hype, Production +1
     week (none with a Dev Kit card); sales are fixed at the audience at release, an 8+ game breaks out to everyone.
-    Tech Demo Lab wins 39.3% of bot runs (bot targets at 30%+ audience). The market's VR Visor is now Cloud Console.
+    Tech Demo Lab wins 36.0% of bot runs (bot targets at 30%+ audience; 39.0% targeting every live platform).
+    Partner money trimmed from $10,000 so always targeting stays in band (director, 2026-11-13). The market's VR
+    Visor is now Cloud Console.
   - MMO: one huge project over several Quarters with a fading subscription and expansions; risks are launch-day
     servers, sunset when subscriptions drop below upkeep, and expansion burnout.

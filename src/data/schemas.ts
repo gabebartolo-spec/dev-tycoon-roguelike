@@ -236,7 +236,7 @@ export const ContentPack = z.object({
     devKitTrait: z.string(),
     breakoutReview: z.number(),
   }).default({
-    enabled: false, curve: [0.1, 0.2, 0.3, 0.4, 0.3, 0.2, 0.1], launchMax: 8, partnerCash: 10000, hype: 10,
+    enabled: false, curve: [0.1, 0.2, 0.3, 0.4, 0.3, 0.2, 0.1], launchMax: 8, partnerCash: 9000, hype: 10,
     extraWeeks: 1, extraPhase: 'production', devKitTrait: 'dev_kit', breakoutReview: 8,
   }),
   review: z.object({ expectation: z.number().positive(), bugPenalty: z.number().nonnegative(), min: z.number(), max: z.number() }),
