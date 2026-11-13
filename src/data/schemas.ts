@@ -12,7 +12,8 @@ export type Target = z.infer<typeof Target>;
 
 export const EffectDef = z.object({
   // always | slot:<dept> | adjacent:<tag> (a neighbouring slot holds a worker with that tag) | phase:<phase id>
-  trigger: z.string().regex(/^(always|slot:[a-z]+|adjacent:[a-z_]+|phase:[a-z]+)$/),
+  // | tech (the game targets a Tech platform)
+  trigger: z.string().regex(/^(always|slot:[a-z]+|adjacent:[a-z_]+|phase:[a-z]+|tech)$/),
   target: Target,
   op: z.enum(['add', 'mul']),
   value: z.number(),
@@ -23,20 +24,21 @@ export const TraitDef = z.object({
   id: z.string(),
   name: z.string(),
   text: z.string(),
-  effects: z.array(EffectDef).min(1),
+  effects: z.array(EffectDef), // empty: a rule card whose effect lives in the sim (e.g. Bundle Ready)
 });
 export type TraitDef = z.infer<typeof TraitDef>;
 
 export const WorkerDef = z.object({
   id: z.string(),
   name: z.string(),
-  salary: z.number().int().positive(), // per week
+  salary: z.number().int().nonnegative(), // per week (0 for asset packs)
+  price: z.number().int().nonnegative().default(0), // one-time cost when hired from the draft
   tags: z.array(z.string()),
   stats: z.object({
     code: z.number(), design: z.number(), art: z.number(), audio: z.number(),  // no qa/marketing stat: support depts read a core stat
     hype: z.number(), bugs: z.number(),
   }),
-  traits: z.array(z.string()).min(1).max(3),
+  traits: z.array(z.string()).max(3),
 });
 export type WorkerDef = z.infer<typeof WorkerDef>;
 
@@ -94,6 +96,7 @@ export const EventEffect = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('bugs'), value: z.number() }),
   z.object({ kind: z.literal('demand'), value: z.number().positive(), genre: z.string().optional() }), // x this Quarter's demand
   z.object({ kind: z.literal('share'), value: z.number().positive() }), // x market share (capped)
+  z.object({ kind: z.literal('bundle'), value: z.number().min(0).max(1) }), // sell every game still selling for this share of what it would still earn
 ]);
 export type EventEffect = z.infer<typeof EventEffect>;
 
@@ -124,7 +127,12 @@ export const Mod = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('rivalSteal'), add: z.number() }),
   z.object({ kind: z.literal('shareMax'), mul: z.number().positive() }),
   z.object({ kind: z.literal('strikes'), add: z.number().int() }),
-  z.object({ kind: z.literal('startWorker'), id: z.string() }),          // this worker is on the starting roster
+  z.object({ kind: z.literal('startWorker'), id: z.string() }),
+  z.object({ kind: z.literal('promises') }), // Overpromiser rules: pitches offer promises
+  z.object({ kind: z.literal('minPromises'), value: z.number().int().nonnegative() }), // every pitched game must carry this many
+  z.object({ kind: z.literal('tech') }), // Tech rules: games may target a Tech platform
+  z.object({ kind: z.literal('reskin') }), // Shovelware rules: reskins, impulse floor, saturation, lost share
+  z.object({ kind: z.literal('rentFreeUpTo'), value: z.number().int().nonnegative() }), // rent 0 while roster <= value          // this worker is on the starting roster
 ]);
 export type Mod = z.infer<typeof Mod>;
 
@@ -166,10 +174,75 @@ export const ContentPack = z.object({
     debt: z.number().min(0).max(1), // share of a shipped game's bugs that carries into the next game
     statPerEra: z.number(),         // + to the card's best stat per Era
     salaryPerEra: z.number(),       // + weekly salary per Era
-  }).default({ tag: 'ai', debt: 0.3, statPerEra: 1, salaryPerEra: 20 }),
+  }).default({ tag: 'ai', debt: 0.15, statPerEra: 1, salaryPerEra: 20 }),
+  /** Solo cards: workers with this tag can sit on several desks (each extra desk lengthens the phase); a game made
+   *  only by solo cards sells with a slower decay (Long Tail). */
+  solo: z.object({
+    tag: z.string(),
+    weeksPerHat: z.number().int().nonnegative(), // + weeks to a phase per extra desk one solo card holds
+    decay: z.number().min(0).max(1),             // weekly sales factor for an all-solo game (base is sales.decay)
+  }).default({ tag: 'solo', weeksPerHat: 1, decay: 0.92 }),
+  /** Shovelware (off until the unlock's reskin mod): reskin your last game (same genre, new topic, skips Prototype),
+   *  which sells as if it reviewed at least impulseFloor, floods its genre (demand x (1 - saturation) for the rest of
+   *  the Quarter) and costs lost share (x shareLoss per reskin under restoreReview, down to shareMin) until a game
+   *  reviews restoreReview or more. Asset-tagged cards never burn out. A board with the bundle trait sells more, faster. */
+  /** Overpromiser (off until the unlock's promises mod): each pitch offers `offer` random promises; take up to `max`
+   *  for +hype each. A game reviewing under a promise's bar breaks it: refund (share of all its sales) and backlash
+   *  (review points off later games). Each shipped game clears 1 backlash point; one reviewing redeemReview+ clears all.
+   *  Rule traits: keynote (+keynoteHype per promise), spin (refund spinRefund), apology (backlash apologyBacklash). */
+  promises: z.array(z.object({ id: z.string(), name: z.string(), bar: z.number() })).default([]),
+  overpromise: z.object({
+    enabled: z.boolean(),
+    offer: z.number().int().nonnegative(),
+    max: z.number().int().nonnegative(),
+    minPromises: z.number().int().nonnegative(),
+    hype: z.number(),
+    refund: z.number().min(0).max(1),
+    backlash: z.number().nonnegative(),
+    fade: z.number().nonnegative(),
+    redeemReview: z.number(),
+    keynoteTrait: z.string(), keynoteHype: z.number(),
+    spinTrait: z.string(), spinRefund: z.number().min(0).max(1),
+    apologyTrait: z.string(), apologyBacklash: z.number().nonnegative(),
+  }).default({
+    enabled: false, offer: 3, max: 3, minPromises: 0, hype: 12, refund: 0.2, backlash: 1, fade: 1, redeemReview: 8,
+    keynoteTrait: 'keynote', keynoteHype: 5, spinTrait: 'spin', spinRefund: 0.1, apologyTrait: 'notes_app_apology', apologyBacklash: 0.5,
+  }),
+  shovelware: z.object({
+    reskin: z.boolean(),
+    assetTag: z.string(),
+    impulseFloor: z.number(),
+    saturation: z.number().min(0).max(1),
+    shareLoss: z.number().min(0).max(1),
+    shareMin: z.number().min(0).max(1),
+    restoreReview: z.number(),
+    bundleTrait: z.string(),
+    bundleSales: z.number().positive(), // launch sales x this
+    bundleDecay: z.number().gt(0).lt(1), // weekly sales factor
+  }).default({ reskin: false, assetTag: 'asset', impulseFloor: 5, saturation: 0.1, shareLoss: 0.95, shareMin: 0.5, restoreReview: 7, bundleTrait: 'bundle_ready', bundleSales: 1.2, bundleDecay: 0.8 }),
+  /** Tech (off until the unlock's tech mod): each Tech platform launches in a seeded Quarter (0..launchMax); its
+   *  audience follows `curve` by Quarters since launch, then it is dead. A game may target a live one: partnerCash and
+   *  +hype at the start, extraWeeks on extraPhase unless a devKitTrait card is on the board, and sales x the audience
+   *  at release (a game reviewing breakoutReview+ sells to everyone). */
+  techPlatforms: z.array(z.object({ id: z.string(), name: z.string() })).default([]),
+  tech: z.object({
+    enabled: z.boolean(),
+    curve: z.array(z.number().min(0).max(1)).min(1),
+    launchMax: z.number().int().nonnegative(),
+    partnerCash: z.number(),
+    hype: z.number(),
+    extraWeeks: z.number().int().nonnegative(),
+    extraPhase: z.string(),
+    devKitTrait: z.string(),
+    breakoutReview: z.number(),
+  }).default({
+    enabled: false, curve: [0.1, 0.2, 0.3, 0.4, 0.3, 0.2, 0.1], launchMax: 8, partnerCash: 9000, hype: 10,
+    extraWeeks: 1, extraPhase: 'production', devKitTrait: 'dev_kit', breakoutReview: 8,
+  }),
   review: z.object({ expectation: z.number().positive(), bugPenalty: z.number().nonnegative(), min: z.number(), max: z.number() }),
   economy: z.object({
     rentPerWeek: z.number().nonnegative(),
+    rentFreeUpTo: z.number().int().nonnegative().default(0), // no rent while the roster is this small (Bedroom)
     debtStrikes: z.number().int().positive(),       // D-2: the Nth strike ends the run
     severanceWeeks: z.number().nonnegative(),
     rosterMax: z.number().int().positive(),

@@ -94,3 +94,29 @@ options for the next attempt.
 - **D-4 Bosses = rival game companies.** Each Era ends in a Rival Showdown judged by review score: your release
   versus the rival's.
 - **D-5 Spend (2026-11-13).** Written yes from the director: spend Tripo, Suno and ElevenLabs credits as needed for M5 art and audio. Credits are finite, so check the balance before each job and never overdraw.
+- **D-6 Builds (2026-11-13).** Content is organised around builds: Vibecoding, Solo dev, Shovelware, Overpromiser,
+  Tech, MMO developer. Each build has its own starting studio, and that studio should win 35-45% of greedy-bot runs
+  (Garage: 38.7%). Built so far (300 seeds): Weekend Project (Vibecoding) 35.0%, Bedroom (Solo dev) 44.7%, Asset
+  Flip Farm (Shovelware) 40.7%, Hype Machine (Overpromiser) 39.0%, Tech Demo Lab (Tech) 36.0%. Drafts carry names and text; nothing enters content.json before approval.
+- **D-7 Boss ladder (2026-11-13).** The three Era showdowns are the indie, AA and AAA bosses. An optional AAAA+
+  superboss, an original megapublisher, follows Era 3 for players who hold three keys: each Era offers one key
+  challenge, and taking it costs something.
+- **D-8 Build rules chosen (2026-11-13).**
+  - Shovelware: a reskin skips Prototype and reuses your last genre; asset packs are $0-salary cards with a one-time
+    price; pushback is genre saturation and lost market share.
+    Built (2026-11-13): a reskin skips Prototype; it sells as an impulse buy (review floor 5) but cuts its genre's
+    demand 10% and, under a 7 review, costs 5% of all sales (down to 50%) until a 7+ game wins the share back.
+    Asset packs never burn out; a Bundle Ready card sells 1.2x but fades faster. Asset Flip Farm wins 40.7%.
+  - Overpromiser: a flop costs refunds and a review hit per broken promise; a later great game redeems it.
+    Built (2026-11-13): each pitch offers 3 of 6 named promises (bars 5-9), up to 3 taken at +12 hype each; a broken
+    promise refunds 20% of the game's sales and costs -1 review on later games, fading 1 per game shipped, cleared by
+    an 8+ game. Hype Machine (must carry 1+ promise) wins 39.0% of bot runs.
+  - Tech: VR, AR and special controllers are platforms; the bill is a small audience, platform collapse and dev cost.
+    Built (2026-11-13): 4 Tech platforms (VR, AR, plastic instrument, motion) launch in seeded Quarters; audience
+    10-40% and back over 7 Quarters, then dead. Targeting one pays $9,000 partner money and +10 hype, Production +1
+    week (none with a Dev Kit card); sales are fixed at the audience at release, an 8+ game breaks out to everyone.
+    Tech Demo Lab wins 36.0% of bot runs (bot targets at 30%+ audience; 39.0% targeting every live platform).
+    Partner money trimmed from $10,000 so always targeting stays in band (director, 2026-11-13). The market's VR
+    Visor is now Cloud Console.
+  - MMO: one huge project over several Quarters with a fading subscription and expansions; risks are launch-day
+    servers, sunset when subscriptions drop below upkeep, and expansion burnout.

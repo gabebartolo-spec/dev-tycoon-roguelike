@@ -1,7 +1,7 @@
 import prand from 'pure-rand';
 import type { ContentPack, Dept, EventEffect } from '../data/schemas';
 import {
-  bossOf, eraOf, generateMarket, lastWeek, platformMul, quarterOf, rivalById, rivalsReleasing, targetFor, thresholdFor,
+  bossOf, eraOf, generateMarket, techAudience, lastWeek, platformMul, quarterOf, rivalById, rivalsReleasing, targetFor, thresholdFor,
   type Market,
 } from './market';
 import { defaultOptions, runContent, type RunOptions } from './meta';
@@ -16,6 +16,13 @@ export interface Project {
   bugs: number;
   contributions: Contribution[];
   usedAi?: boolean; // an AI card worked a phase: the shipped game leaves tech debt
+  solo?: boolean;   // every phase so far was worked only by solo cards: the shipped game gets the Long Tail
+  reskin?: boolean; // Shovelware: a reskin of the last game (skipped Prototype; impulse floor, saturation, lost share)
+  bundled?: boolean; // a Bundle Ready card worked a phase: sells more, fades faster
+  promises?: string[]; // Overpromiser: promises this game carries
+  backlash?: number;   // review points off this game for earlier broken promises
+  opTraits?: string[]; // Overpromiser rule traits (keynote, spin, apology) of cards that worked a phase
+  tech?: string;       // Tech: the Tech platform this game targets
 }
 
 export interface ReviewLine { source: string; impact: number } // impact on the 1-10 review score
@@ -32,13 +39,17 @@ export interface Release {
   best: ReviewLine[];
   worst: ReviewLine[];
   cost: number;    // salaries + rent paid while it was in development
+  backlash?: number; // review points it lost to earlier broken promises
+  broken?: string[]; // promises it broke
+  tech?: string;     // Tech platform it shipped on
+  audience?: number; // that platform's audience share at release (1 for a breakout)
   revenue: number; // sales so far
 }
 
 /** A released game still selling; `next` is next week's revenue, which decays every week. */
-export interface Sale { release: number; next: number }
+export interface Sale { release: number; next: number; decay?: number } // decay: own weekly factor (Long Tail)
 
-export interface Pitch { genreId: string; topicId: string }
+export interface Pitch { genreId: string; topicId: string; offers?: string[] } // offers: promises you may take (Overpromiser)
 
 export interface Showdown { era: number; rivalId: string; target: number; yours: number | null; won: boolean }
 
@@ -56,6 +67,8 @@ export interface RunState {
   trendId: string;
   demand: Record<string, number>; // this Quarter's genre demand after rivals and events
   share: number;                  // market share multiplier on all sales (capped)
+  backlash?: number;              // Overpromiser: review points off the next game for broken promises
+  flipShare?: number;             // Shovelware lost share: x on all sales, cut by low-review reskins, back to 1 by a good game
   expectation: number;            // the review bar; rises after each hit
   rivalGenres: Record<string, string>; // genre each rival is chasing now (copies your hits)
   pitch: Pitch[];
@@ -77,7 +90,7 @@ export interface RunState {
 }
 
 export type Command =
-  | { type: 'startProject'; genreId: string; topicId: string }
+  | { type: 'startProject'; genreId: string; topicId: string; reskin?: boolean; promises?: string[]; tech?: string } // reskin: any topic, last game's genre
   | { type: 'place'; dept: Dept; workerId: string | null }
   | { type: 'endPhase' }
   | { type: 'hire'; workerId: string }
@@ -112,6 +125,26 @@ function drawInt(s: RunState, max: number): [number, RunState] {
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 export const isAi = (id: string, content: ContentPack) => !!content.workers.find((w) => w.id === id)?.tags.includes(content.ai.tag);
+export const isSolo = (id: string, content: ContentPack) => !!content.workers.find((w) => w.id === id)?.tags.includes(content.solo.tag);
+
+/** Wearing every hat: a solo card on several desks adds weeksPerHat to the phase for each desk past the first. */
+export function hatWeeks(board: Board, content: ContentPack): number {
+  const desks = new Map<string, number>();
+  for (const id of Object.values(board)) if (id) desks.set(id, (desks.get(id) ?? 0) + 1);
+  return Math.max(0, ...[...desks.values()].map((n) => n - 1)) * content.solo.weeksPerHat;
+}
+
+/** Tech: a Tech game's extraPhase takes extraWeeks longer unless a Dev Kit card is on the board. */
+export function techWeeks(s: RunState, content: ContentPack): number {
+  const T = content.tech;
+  if (!s.project?.tech || content.phases[s.project.phase].id !== T.extraPhase) return 0;
+  const devKit = Object.values(s.board).some((id) => id && content.workers.find((w) => w.id === id)?.traits.includes(T.devKitTrait));
+  return devKit ? 0 : T.extraWeeks;
+}
+
+/** Weeks the current phase takes with this board (base weeks plus hats plus Tech). */
+export const phaseWeeks = (s: RunState, content: ContentPack) =>
+  s.project ? content.phases[s.project.phase].weeks + hatWeeks(s.board, content) + techWeeks(s, content) : 0;
 
 /**
  * New Model Drops: from Era 2 on, every AI card has +statPerEra on its best stat and +salaryPerEra salary per Era.
@@ -131,12 +164,33 @@ export function withModels(content: ContentPack, week: number): ContentPack {
   };
 }
 
+const hasTag = (id: string, tag: string, content: ContentPack) => !!content.workers.find((w) => w.id === id)?.tags.includes(tag);
+export const isAsset = (id: string, content: ContentPack) => hasTag(id, content.shovelware.assetTag, content);
+const isBundler = (id: string, content: ContentPack) => !!content.workers.find((w) => w.id === id)?.traits.includes(content.shovelware.bundleTrait);
+
+/** Shovelware: can the next project be a reskin of the last release (same genre, a different topic)? */
+export function canReskin(s: RunState, topicId: string, content: ContentPack): boolean {
+  const last = s.releases[s.releases.length - 1];
+  return content.shovelware.reskin && !!last && last.topicId !== topicId && content.topics.some((t) => t.id === topicId);
+}
+
+/** Overpromiser rule traits carried by the cards that worked this phase (merged into the project's). */
+function opTraitsOf(p: Project, placed: string[], content: ContentPack): Pick<Project, 'opTraits'> {
+  const O = content.overpromise;
+  const rules = [O.keynoteTrait, O.spinTrait, O.apologyTrait];
+  const got = new Set(p.opTraits ?? []);
+  for (const id of placed) for (const t of content.workers.find((w) => w.id === id)!.traits) if (rules.includes(t)) got.add(t);
+  return got.size ? { opTraits: [...got].sort() } : {};
+}
+
 const salaryOf = (id: string, content: ContentPack) => content.workers.find((w) => w.id === id)!.salary;
 const payrollOf = (s: RunState, content: ContentPack) => {
   const c = withModels(content, s.week);
   return s.roster.reduce((sum, id) => sum + salaryOf(id, c), 0);
 };
-export const weeklyCosts = (s: RunState, content: ContentPack) => payrollOf(s, content) + content.economy.rentPerWeek;
+/** Rent this week: none while the roster is no bigger than rentFreeUpTo (working from the bedroom). */
+export const rentOf = (s: RunState, content: ContentPack) => (s.roster.length <= content.economy.rentFreeUpTo ? 0 : content.economy.rentPerWeek);
+export const weeklyCosts = (s: RunState, content: ContentPack) => payrollOf(s, content) + rentOf(s, content);
 
 /** Weeks the current cash lasts at current costs, counting sales already earning. Infinity if it never runs out. */
 export function runway(s: RunState, content: ContentPack): number {
@@ -146,7 +200,7 @@ export function runway(s: RunState, content: ContentPack): number {
   for (let w = 0; w < 520; w++) {
     cash += sales.reduce((a, b) => a + b, 0) - cost;
     if (cash < 0) return w;
-    sales = sales.map((x) => x * content.sales.decay).filter((x) => x >= content.sales.minWeekly);
+    sales = sales.map((x, i) => x * (s.sales[i]?.decay ?? content.sales.decay)).filter((x) => x >= content.sales.minWeekly);
   }
   return Infinity;
 }
@@ -158,7 +212,16 @@ function drawPitch(s0: RunState, content: ContentPack): RunState {
     let g: number, t: number;
     [g, s] = drawInt(s, content.genres.length - 1);
     [t, s] = drawInt(s, content.topics.length - 1);
-    pitch.push({ genreId: content.genres[g].id, topicId: content.topics[t].id });
+    const offers: string[] = [];
+    if (content.overpromise.enabled) {
+      const pool = content.promises.map((p) => p.id);
+      while (offers.length < content.overpromise.offer && pool.length) {
+        let k: number;
+        [k, s] = drawInt(s, pool.length - 1);
+        offers.push(pool.splice(k, 1)[0]);
+      }
+    }
+    pitch.push({ genreId: content.genres[g].id, topicId: content.topics[t].id, ...(offers.length ? { offers } : {}) });
   }
   return { ...s, pitch };
 }
@@ -206,10 +269,10 @@ export function newRun(seed: number, content: ContentPack, options: RunOptions =
 }
 
 /** Review score of a release under a rival's twist (or plain, without one). */
-export function twistedReview(r: Pick<Release, 'quality' | 'hype' | 'bugs' | 'expectation'>, content: ContentPack, rivalId?: string): number {
+export function twistedReview(r: Pick<Release, 'quality' | 'hype' | 'bugs' | 'expectation' | 'backlash'>, content: ContentPack, rivalId?: string): number {
   const t = rivalId ? rivalById(rivalId, content).twist : { qualityMul: 1, bugPenaltyMul: 1, hypeToReview: 0 };
   const { bugPenalty, min, max } = content.review;
-  const raw = (10 * r.quality * t.qualityMul) / r.expectation - r.bugs * bugPenalty * t.bugPenaltyMul + r.hype * t.hypeToReview;
+  const raw = (10 * r.quality * t.qualityMul) / r.expectation - r.bugs * bugPenalty * t.bugPenaltyMul + r.hype * t.hypeToReview - (r.backlash ?? 0);
   return Math.round(clamp(raw, min, max) * 10) / 10;
 }
 
@@ -247,7 +310,7 @@ function tick(s0: RunState, weeks: number, content: ContentPack): [RunState, Sim
   const events: SimEvent[] = [];
   for (let i = 0; i < weeks && !s.dead && !s.won; i++) {
     const salary = payrollOf(s, content);
-    const rent = economy.rentPerWeek;
+    const rent = rentOf(s, content);
     const releases = s.releases.map((r) => ({ ...r }));
     let income = 0;
     for (const sale of s.sales) {
@@ -255,7 +318,7 @@ function tick(s0: RunState, weeks: number, content: ContentPack): [RunState, Sim
       income += amount;
       releases[sale.release].revenue += amount;
     }
-    const sales = s.sales.map((x) => ({ ...x, next: x.next * S.decay })).filter((x) => x.next >= S.minWeekly);
+    const sales = s.sales.map((x) => ({ ...x, next: x.next * (x.decay ?? S.decay) })).filter((x) => x.next >= S.minWeekly);
     const cash = s.cash - salary - rent + income;
     s = {
       ...s, week: s.week + 1, cash, releases, sales,
@@ -311,7 +374,7 @@ export function demandFor(s: RunState, p: Pitch, content: ContentPack): number {
   const topic = content.topics.find((t) => t.id === p.topicId)!;
   const trend = content.trends.find((t) => t.id === s.trendId)!;
   return (s.demand[p.genreId] ?? 1) * (topic.fit[p.genreId] ?? 1) * (trend.demand[p.genreId] ?? 1)
-    * platformMul(s.market, quarterOf(s.week, content), content) * s.share;
+    * platformMul(s.market, quarterOf(s.week, content), content) * s.share * (s.flipShare ?? 1);
 }
 
 /** First-week revenue of a release: hype x review x demand. */
@@ -323,7 +386,7 @@ export function launchSales(r: Pick<Release, 'hype' | 'review'>, demand: number,
 /** Totals the current board would produce if the phase ended now. */
 export function phaseTotals(s: RunState, content: ContentPack): Totals | null {
   if (!s.project) return null;
-  return resolve(s.board, { content: withModels(content, s.week), genreId: s.project.genreId, phaseId: content.phases[s.project.phase].id, trendId: s.trendId });
+  return resolve(s.board, { content: withModels(content, s.week), genreId: s.project.genreId, phaseId: content.phases[s.project.phase].id, trendId: s.trendId, tech: !!s.project.tech });
 }
 
 /** Pure preview: apply a command to a copy and diff this phase's totals. */
@@ -335,15 +398,16 @@ export function preview(s: RunState, cmd: Command, content: ContentPack): { qual
   return { quality: after.quality - before.quality, hype: after.hype - before.hype, bugs: after.bugs - before.bugs };
 }
 
-export function reviewOf(p: Project, expectation: number, content: ContentPack): Pick<Release, 'review' | 'quality' | 'hype' | 'bugs' | 'best' | 'worst' | 'expectation'> {
+export function reviewOf(p: Project, expectation: number, content: ContentPack): Pick<Release, 'review' | 'quality' | 'hype' | 'bugs' | 'best' | 'worst' | 'expectation' | 'backlash'> {
   const { bugPenalty } = content.review;
-  const review = twistedReview({ quality: p.quality, hype: p.hype, bugs: p.bugs, expectation }, content);
+  const review = twistedReview({ quality: p.quality, hype: p.hype, bugs: p.bugs, expectation, backlash: p.backlash }, content);
   const lines: ReviewLine[] = mergeContributions(p.contributions)
     .filter((c) => c.metric !== 'hype')
     .map((c) => ({ source: c.source, impact: c.metric === 'quality' ? (10 * c.delta) / expectation : -c.delta * bugPenalty }));
+  if (p.backlash) lines.push({ source: 'Broken promises', impact: -p.backlash });
   const sorted = [...lines].sort((a, b) => b.impact - a.impact);
   return {
-    review, expectation, quality: p.quality, hype: p.hype, bugs: p.bugs,
+    review, expectation, quality: p.quality, hype: p.hype, bugs: p.bugs, ...(p.backlash ? { backlash: p.backlash } : {}),
     best: sorted.filter((l) => l.impact > 0).slice(0, 3),
     worst: sorted.filter((l) => l.impact < 0).reverse().slice(0, 3),
   };
@@ -359,7 +423,7 @@ function burnoutPhase(s0: RunState, project0: Project, weeks: number, content: C
   const burnout: Record<string, number> = {};
   const benched: string[] = [];
   for (const id of s.roster) {
-    if (isAi(id, content)) { burnout[id] = 0; continue; } // AI cards never burn out
+    if (isAi(id, content) || isAsset(id, content)) { burnout[id] = 0; continue; } // AI cards and asset packs never burn out
     const was = s.burnout[id] ?? 0;
     const b = placed.has(id) ? was + B.perWeekPlaced * weeks : Math.max(0, was - B.recoverPerWeek * weeks);
     burnout[id] = b < B.threshold ? b : 0;
@@ -390,6 +454,18 @@ function applyEffect(s: RunState, f: EventEffect, source: string, content: Conte
     case 'demand': return {
       ...s, demand: Object.fromEntries(Object.entries(s.demand).map(([g, d]) => [g, !f.genre || f.genre === g ? d * f.value : d])),
     };
+    case 'bundle': { // sell the back catalogue: cash now for a share of what every selling game would still earn
+      const releases = s.releases.map((r) => ({ ...r }));
+      let total = 0;
+      for (const x of s.sales) {
+        let left = 0;
+        for (let w = x.next; w >= content.sales.minWeekly; w *= x.decay ?? content.sales.decay) left += w;
+        const amount = Math.round(left * f.value);
+        releases[x.release].revenue += amount;
+        total += amount;
+      }
+      return { ...s, releases, sales: [], cash: s.cash + total, ledger: { ...s.ledger, sales: s.ledger.sales + total } };
+    }
     case 'hype':
     case 'bugs': {
       if (!s.project) return { ...s, carry: { ...s.carry, [f.kind]: s.carry[f.kind] + f.value } };
@@ -414,29 +490,66 @@ export function apply(s: RunState, cmd: Command, content: ContentPack): [RunStat
     }
     case 'startProject': {
       if (s.project) throw new Error('project already running');
-      if (!s.pitch.some((p) => p.genreId === cmd.genreId && p.topicId === cmd.topicId)) throw new Error(`not pitched ${cmd.genreId}/${cmd.topicId}`);
+      const O = content.overpromise;
+      const promises = cmd.promises ?? [];
+      if (cmd.reskin) {
+        if (!canReskin(s, cmd.topicId, content)) throw new Error(`cannot reskin as ${cmd.topicId}`);
+        if (cmd.genreId !== s.releases[s.releases.length - 1].genreId) throw new Error('a reskin keeps the last game\'s genre');
+        if (promises.length) throw new Error('a reskin carries no promises');
+      } else {
+        const pitched = s.pitch.find((p) => p.genreId === cmd.genreId && p.topicId === cmd.topicId);
+        if (!pitched) throw new Error(`not pitched ${cmd.genreId}/${cmd.topicId}`);
+        if (promises.some((id, i) => !pitched.offers?.includes(id) || promises.indexOf(id) !== i)) throw new Error('promise not offered');
+        if (promises.length > O.max) throw new Error(`at most ${O.max} promises`);
+        if (O.enabled && promises.length < O.minPromises) throw new Error(`at least ${O.minPromises} promises`);
+      }
+      const T = content.tech;
+      if (cmd.tech !== undefined) {
+        if (!T.enabled) throw new Error('Tech is locked');
+        if (cmd.reskin) throw new Error('a reskin cannot target a Tech platform');
+        if (techAudience(s.market, cmd.tech, quarterOf(s.week, content), content) <= 0) throw new Error(`${cmd.tech} is not on sale`);
+      }
       const contributions: Contribution[] = [];
       if (s.carry.hype) contributions.push({ source: 'Events', metric: 'hype', delta: s.carry.hype });
       if (s.carry.bugs) contributions.push({ source: 'Events', metric: 'bugs', delta: s.carry.bugs });
       const debt = s.carry.debt ?? 0;
       if (debt) contributions.push({ source: 'Tech debt', metric: 'bugs', delta: debt });
-      const project: Project = { genreId: cmd.genreId, topicId: cmd.topicId, phase: 0, quality: 0, hype: s.carry.hype, bugs: s.carry.bugs + debt, contributions };
-      return [{ ...s, project, projectCost: 0, draft: null, carry: { hype: 0, bugs: 0 } }, [{ type: 'projectStarted', genreId: cmd.genreId, topicId: cmd.topicId }]];
+      const promised = promises.length * O.hype;
+      if (promised) contributions.push({ source: 'Promises', metric: 'hype', delta: promised });
+      const techHype = cmd.tech !== undefined ? T.hype : 0;
+      if (techHype) contributions.push({ source: 'Launch partner', metric: 'hype', delta: techHype });
+      const partner = cmd.tech !== undefined ? T.partnerCash : 0;
+      const project: Project = {
+        genreId: cmd.genreId, topicId: cmd.topicId, phase: cmd.reskin ? 1 : 0, quality: 0, hype: s.carry.hype + promised + techHype, bugs: s.carry.bugs + debt, contributions,
+        ...(cmd.reskin ? { reskin: true } : {}),
+        ...(promises.length ? { promises } : {}),
+        ...(s.backlash ? { backlash: s.backlash } : {}),
+        ...(cmd.tech !== undefined ? { tech: cmd.tech } : {}),
+      };
+      return [{
+        ...s, project, projectCost: 0, draft: null, carry: { hype: 0, bugs: 0 },
+        ...(partner ? { cash: s.cash + partner, ledger: { ...s.ledger, events: s.ledger.events + partner } } : {}),
+      }, [{ type: 'projectStarted', genreId: cmd.genreId, topicId: cmd.topicId }]];
     }
     case 'place': {
       if (!(cmd.dept in s.board)) throw new Error(`unknown dept ${cmd.dept}`);
       if (cmd.workerId && !s.roster.includes(cmd.workerId)) throw new Error(`not on roster ${cmd.workerId}`);
       if (cmd.workerId && s.benched.includes(cmd.workerId)) throw new Error(`benched ${cmd.workerId}`);
       const board: Board = { ...s.board };
-      for (const d of Object.keys(board) as Dept[]) if (cmd.workerId && board[d] === cmd.workerId) board[d] = null; // one slot per worker
+      // One desk per worker, except solo cards, which can wear several hats (see hatWeeks).
+      if (cmd.workerId && !isSolo(cmd.workerId, content)) for (const d of Object.keys(board) as Dept[]) if (board[d] === cmd.workerId) board[d] = null;
       board[cmd.dept] = cmd.workerId;
       return [{ ...s, board }, [{ type: 'placed', dept: cmd.dept, workerId: cmd.workerId }]];
     }
     case 'hire': {
       if (!s.draft?.includes(cmd.workerId)) throw new Error(`not offered ${cmd.workerId}`);
       if (s.roster.length >= content.economy.rosterMax) throw new Error('roster full');
+      const price = content.workers.find((w) => w.id === cmd.workerId)!.price; // asset packs: paid once, no salary
       return [
-        { ...s, roster: [...s.roster, cmd.workerId], burnout: { ...s.burnout, [cmd.workerId]: 0 }, draft: null },
+        {
+          ...s, roster: [...s.roster, cmd.workerId], burnout: { ...s.burnout, [cmd.workerId]: 0 }, draft: null,
+          ...(price ? { cash: s.cash - price, ledger: { ...s.ledger, salary: s.ledger.salary + price } } : {}),
+        },
         [{ type: 'hired', workerId: cmd.workerId }],
       ];
     }
@@ -459,6 +572,8 @@ export function apply(s: RunState, cmd: Command, content: ContentPack): [RunStat
     case 'endPhase': {
       if (!s.project) throw new Error('no project');
       const phase = content.phases[s.project.phase];
+      const weeks = phaseWeeks(s, content);
+      const placed = Object.values(s.board).filter(Boolean) as string[];
       const totals = phaseTotals(s, content)!;
       const [afterBurnout, built, burnEvents] = burnoutPhase(s, {
         ...s.project,
@@ -467,23 +582,48 @@ export function apply(s: RunState, cmd: Command, content: ContentPack): [RunStat
         hype: s.project.hype + totals.hype,
         bugs: s.project.bugs + totals.bugs,
         contributions: [...s.project.contributions, ...totals.contributions],
-        usedAi: s.project.usedAi || Object.values(s.board).some((id) => !!id && isAi(id, content)),
-      }, phase.weeks, content);
-      const [ticked, tickEvents] = tick({ ...afterBurnout, project: built }, phase.weeks, content);
+        usedAi: s.project.usedAi || placed.some((id) => isAi(id, content)),
+        solo: (s.project.solo ?? true) && placed.every((id) => isSolo(id, content)), // an empty desk (a benched solo dev) keeps it
+        ...(s.project.bundled || placed.some((id) => isBundler(id, content)) ? { bundled: true } : {}),
+        ...opTraitsOf(s.project, placed, content),
+      }, weeks, content);
+      const [ticked, tickEvents] = tick({ ...afterBurnout, project: built }, weeks, content);
       let next = ticked;
       const events: SimEvent[] = [
-        { type: 'phaseEnded', phaseId: phase.id, weeks: phase.weeks, payroll: next.projectCost - s.projectCost, totals },
+        { type: 'phaseEnded', phaseId: phase.id, weeks, payroll: next.projectCost - s.projectCost, totals },
         ...burnEvents, ...tickEvents,
       ];
-      const project = next.project!; // events during the tick may have added hype/bugs
+      let project = next.project!; // events during the tick may have added hype/bugs
+      const O = content.overpromise;
+      const keynote = (project.promises?.length ?? 0) * (project.opTraits?.includes(O.keynoteTrait) ? O.keynoteHype : 0);
+      if (keynote) project = { ...project, hype: project.hype + keynote, contributions: [...project.contributions, { source: 'Keynote', metric: 'hype', delta: keynote }] };
       if (!next.dead && !next.won && project.phase >= content.phases.length) {
         const M = content.market;
         const release: Release = {
           genreId: project.genreId, topicId: project.topicId, week: next.week,
           ...reviewOf(project, next.expectation, content), cost: next.projectCost, revenue: 0,
         };
+        // Overpromiser: promises above the review break: refund a share of all its sales, backlash on later games.
+        const broken = (project.promises ?? []).filter((id) => content.promises.find((p) => p.id === id)!.bar > release.review);
+        if (broken.length) release.broken = broken;
+        const refund = broken.length * (project.opTraits?.includes(O.spinTrait) ? O.spinRefund : O.refund);
+        const per = project.opTraits?.includes(O.apologyTrait) ? O.apologyBacklash : O.backlash;
+        const backlash = !O.enabled ? undefined
+          : (release.review >= O.redeemReview ? 0 : Math.max(0, (next.backlash ?? 0) - O.fade)) + broken.length * per;
         const hit = release.review >= M.hitReview;
-        const demand = demandFor(next, project, content);
+        // Tech: sells to the platform's audience at release (fixed for the game's life); a breakout sells to everyone.
+        if (project.tech) {
+          release.tech = project.tech;
+          release.audience = release.review >= content.tech.breakoutReview ? 1 : techAudience(next.market, project.tech, quarterOf(next.week, content), content);
+        }
+        const demand = demandFor(next, project, content) * (release.audience ?? 1);
+        const SW = content.shovelware;
+        // Shovelware: a reskin sells as an impulse buy (review floor) and floods its genre; a good game wins share back.
+        const sold = { hype: release.hype, review: project.reskin ? Math.max(release.review, SW.impulseFloor) : release.review };
+        const launch = launchSales(sold, demand, content) * (project.bundled ? SW.bundleSales : 1) * Math.max(0, 1 - refund);
+        const decay = project.bundled ? SW.bundleDecay : project.solo ? content.solo.decay : undefined;
+        const flipShare = project.reskin && release.review < SW.restoreReview ? Math.max(SW.shareMin, (next.flipShare ?? 1) * SW.shareLoss)
+          : release.review >= SW.restoreReview && next.flipShare !== undefined ? 1 : next.flipShare;
         // Rivals react to a hit: the first rival chasing another genre switches to yours.
         const copycat = hit ? next.market.rivals.find((id) => next.rivalGenres[id] !== project.genreId) : undefined;
         // Tech debt: a game an AI card worked on hands part of its bugs to the next game.
@@ -491,7 +631,10 @@ export function apply(s: RunState, cmd: Command, content: ContentPack): [RunStat
         next = {
           ...next, project: null, benched: [], releases: [...next.releases, release],
           carry: debt ? { ...next.carry, debt: (next.carry.debt ?? 0) + debt } : next.carry,
-          sales: [...next.sales, { release: next.releases.length, next: launchSales(release, demand, content) }],
+          sales: [...next.sales, { release: next.releases.length, next: launch, ...(decay !== undefined ? { decay } : {}) }],
+          ...(flipShare !== undefined ? { flipShare } : {}),
+          ...(backlash !== undefined ? { backlash } : {}),
+          demand: project.reskin ? { ...next.demand, [project.genreId]: next.demand[project.genreId] * (1 - SW.saturation) } : next.demand,
           expectation: hit ? Math.min(M.expectationMax, next.expectation + M.expectationRise) : next.expectation,
           rivalGenres: copycat ? { ...next.rivalGenres, [copycat]: project.genreId } : next.rivalGenres,
         };

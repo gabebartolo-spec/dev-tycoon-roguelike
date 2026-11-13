@@ -1,12 +1,17 @@
 import type { ContentPack } from '../data/schemas';
-import { apply, demandFor, newRun, phaseTotals, type RunState } from './run';
+import { quarterOf, techAudience } from './market';
+import { apply, canReskin, demandFor, newRun, phaseTotals, type RunState } from './run';
 
 /**
  * Headless greedy player for balance sweeps (not used by the game). Pitches the highest-demand option, fills each
  * slot with the worker who adds the most review points, answers events with their first choice, hires while cash is
- * comfortable. Deterministic: same seed, same run.
+ * comfortable. With Shovelware it reskins its last game (best-demand new topic) while lost share stays above
+ * reskinShare, and makes a full game otherwise. With Overpromiser it takes the offered promises whose bar is at or
+ * below its last game's review (5 for the first game), lowest bars first, at least the studio minimum. With Tech it
+ * targets the live Tech platform with the largest audience when that audience is at least techMin.
+ * Deterministic: same seed, same run.
  */
-export function playBot(seed: number, content: ContentPack, maxCommands = 2000): RunState {
+export function playBot(seed: number, content: ContentPack, maxCommands = 2000, reskinShare = 0.7, techMin = 0.3): RunState {
   let s = newRun(seed, content);
   const step = (cmd: Parameters<typeof apply>[1]) => { s = apply(s, cmd, content)[0]; };
   const score = (t: RunState) => {
@@ -17,8 +22,24 @@ export function playBot(seed: number, content: ContentPack, maxCommands = 2000):
     if (s.event) { step({ type: 'chooseEvent', choice: 0 }); continue; }
     if (!s.project) {
       if (s.draft && s.roster.length < 6 && s.cash > 30000) step({ type: 'hire', workerId: s.draft[0] });
+      const last = s.releases[s.releases.length - 1];
+      if (last && (s.flipShare ?? 1) > reskinShare && content.shovelware.reskin) {
+        const skins = content.topics.filter((t) => canReskin(s, t.id, content)).map((t) => ({ genreId: last.genreId, topicId: t.id }));
+        const skin = skins.sort((a, b) => demandFor(s, b, content) - demandFor(s, a, content))[0];
+        step({ type: 'startProject', ...skin, reskin: true });
+        continue;
+      }
       const best = [...s.pitch].sort((a, b) => demandFor(s, b, content) - demandFor(s, a, content))[0];
-      step({ type: 'startProject', ...best });
+      const O = content.overpromise;
+      const bar = (id: string) => content.promises.find((p) => p.id === id)!.bar;
+      const offers = [...(best.offers ?? [])].sort((a, b) => bar(a) - bar(b));
+      const safe = offers.filter((id) => bar(id) <= (last?.review ?? 5));
+      const promises = (safe.length >= O.minPromises ? safe : offers.slice(0, O.minPromises)).slice(0, O.max);
+      const q = quarterOf(s.week, content);
+      const tech = !content.tech.enabled ? undefined : content.techPlatforms
+        .map((p) => ({ id: p.id, a: techAudience(s.market, p.id, q, content) }))
+        .filter((p) => p.a > 0 && p.a >= techMin).sort((a, b) => b.a - a.a)[0]?.id;
+      step({ type: 'startProject', genreId: best.genreId, topicId: best.topicId, ...(promises.length ? { promises } : {}), ...(tech ? { tech } : {}) });
       continue;
     }
     for (const dept of content.departments) {

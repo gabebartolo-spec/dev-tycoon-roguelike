@@ -34,14 +34,14 @@ describe('vibecoding: content is gated', () => {
     expect(plain.events.map((e) => e.id)).not.toContain('agent_deleted_prod');
     expect(plain.startWorkers).toEqual([]);
   });
-  it('the unlock adds the cards and events; Weekend Project starts with a Coding Agent, -$10k and a shorter Prototype', () => {
+  it('the unlock adds the cards and events; Weekend Project starts with a Coding Agent and a shorter Prototype', () => {
     expect(vibe.workers.map((w) => w.id)).toEqual(expect.arrayContaining(AI_IDS));
     expect(vibe.events.map((e) => e.id)).toContain('vibe_jam');
     const s = newRun(5, vibe, opts);
     expect(s.roster[0]).toBe('coding_agent');
     expect(s.roster).toHaveLength(vibe.rosterSize);
     expect(new Set(s.roster).size).toBe(s.roster.length);
-    expect(s.cash).toBe(base.startingCash - 10000);
+    expect(s.cash).toBe(base.startingCash);
     expect(vibe.phases[0].weeks).toBe(base.phases[0].weeks - 1);
   });
 });
@@ -68,11 +68,11 @@ describe('vibecoding: AI cards never burn out', () => {
 });
 
 describe('vibecoding: tech debt', () => {
-  it('on: a game an AI card worked on hands 30% of its bugs to the next game', () => {
+  it('on: a game an AI card worked on hands 15% of its bugs to the next game', () => {
     const s = ship(newRun(5, vibe, opts), { code: 'coding_agent' });
     const shipped = s.releases[0];
     expect(shipped.bugs).toBeGreaterThan(0);
-    expect(s.carry.debt).toBeCloseTo(Math.round(shipped.bugs * 0.3 * 10) / 10, 5);
+    expect(s.carry.debt).toBeCloseTo(Math.round(shipped.bugs * 0.15 * 10) / 10, 5);
     const next = step(s, { type: 'startProject', ...s.pitch[0] });
     expect(next.project!.contributions).toContainEqual({ source: 'Tech debt', metric: 'bugs', delta: s.carry.debt });
     expect(next.project!.bugs).toBeCloseTo(s.carry.bugs + s.carry.debt!, 5);

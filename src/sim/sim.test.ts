@@ -52,10 +52,10 @@ const pitchCmd = (s: RunState, i = 0): Command => ({ type: 'startProject', ...s.
 describe('content', () => {
   it('real content pack validates', () => {
     const c = ContentPack.parse(raw);
-    expect(c.workers).toHaveLength(20); // 12 + 2 behind veterans + 6 behind vibecoding
-    expect(c.traits).toHaveLength(26);
+    expect(c.workers).toHaveLength(39); // 12 + 2 behind veterans + 6 behind vibecoding + 6 behind solo_dev + 7 behind shovelware + 3 behind overpromiser + 3 behind tech
+    expect(c.traits).toHaveLength(42);
     expect(c.genres).toHaveLength(5);
-    expect(c.events).toHaveLength(24); // 20 + 4 behind vibecoding
+    expect(c.events).toHaveLength(37); // 20 + 4 behind vibecoding + 4 behind solo_dev + 3 behind shovelware + 3 behind overpromiser + 3 behind tech
     expect(c.rivals).toHaveLength(6);
   });
   it('rejects a worker with an unknown trait', () => {
