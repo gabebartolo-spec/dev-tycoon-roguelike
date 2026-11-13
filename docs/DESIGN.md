@@ -104,6 +104,9 @@ options for the next attempt.
   - Shovelware: a reskin skips Prototype and reuses your last genre; asset packs are $0-salary cards with a one-time
     price; pushback is genre saturation and lost market share.
   - Overpromiser: a flop costs refunds and a review hit per broken promise; a later great game redeems it.
+    Built (2026-11-13): each pitch offers 3 of 6 named promises (bars 5-9), up to 3 taken at +12 hype each; a broken
+    promise refunds 20% of the game's sales and costs -1 review on later games, fading 1 per game shipped, cleared by
+    an 8+ game. Hype Machine (must carry 1+ promise) wins 39.0% of bot runs.
   - Tech: VR, AR and special controllers are platforms; the bill is a small audience, platform collapse and dev cost.
   - MMO: one huge project over several Quarters with a fading subscription and expansions; risks are launch-day
     servers, sunset when subscriptions drop below upkeep, and expansion burnout.
